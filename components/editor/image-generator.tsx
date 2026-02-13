@@ -33,9 +33,12 @@ export function ImageGenerator({
 
         if (!response.ok) {
           const data = await response.json().catch(() => ({}))
-          const msg = data?.error === 'REPLICATE_API_TOKEN not configured'
-            ? 'Генерация изображений не настроена: добавьте REPLICATE_API_TOKEN в .env (см. .env.example)'
-            : (data?.error || 'Не удалось создать изображение')
+          const raw = data?.error
+          const msg =
+            !raw ? 'Не удалось создать изображение' :
+            typeof raw === 'string' && (raw.includes('REPLICATE_API_TOKEN') || raw.includes('не настроен'))
+              ? 'Генерация изображений не настроена: добавьте REPLICATE_API_TOKEN в настройках Vercel (или в .env локально).'
+              : typeof raw === 'string' ? raw : 'Не удалось создать изображение'
           throw new Error(msg)
         }
 

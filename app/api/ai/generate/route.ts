@@ -344,7 +344,7 @@ ${includeImages && imageType !== 'none' ? '- imageDescription: краткое о
     const requestBody = {
       model: modelToUse,
       messages: [
-        { role: 'system', content: 'Ты помощник, который генерирует структуру презентаций. Всегда отвечай ТОЛЬКО в формате валидного JSON-массива с описанием слайдов, без пояснений и без markdown.' },
+        { role: 'system', content: 'Ты помощник, который генерирует структуру презентаций. Отвечай ТОЛЬКО валидным JSON-массивом объектов, без markdown и без текста вокруг. Правила: строго один массив [...], внутри строк не должно быть переносов строки, запятая после последнего элемента перед ] запрещена, все строки в двойных кавычках.' },
         { role: 'user', content: prompt },
       ],
       temperature: 0.7,
@@ -469,20 +469,69 @@ ${includeImages && imageType !== 'none' ? '- imageDescription: краткое о
 
     // Пытаемся найти JSON в ответе
     const jsonMatch = cleanedText.match(/\[[\s\S]*\]/)
-    const jsonText = jsonMatch ? jsonMatch[0] : cleanedText
+    let jsonText = jsonMatch ? jsonMatch[0] : cleanedText
 
     if (!jsonText || jsonText.trim() === '') {
       console.error('Не удалось найти JSON в ответе:', cleanedText.substring(0, 500))
       throw new Error('Ответ от AI не содержит валидный JSON массив')
     }
 
-    let slides
+    /** Исправляет типичные ошибки JSON от ИИ и парсит. */
+    function tryParseJson(raw: string): any {
+      let s = raw.trim()
+      // Убираем trailing commas перед ] или }
+      s = s.replace(/,(\s*[}\]])/g, '$1')
+      // Неэкранированные переносы внутри строк ломают JSON — заменяем на пробел (контент от ИИ)
+      const fixed: string[] = []
+      let i = 0
+      let inString = false
+      let quote = ''
+      let start = 0
+      while (i < s.length) {
+        const c = s[i]
+        if (!inString) {
+          if (c === '"' || c === "'") {
+            inString = true
+            quote = c
+            start = i + 1
+          }
+          fixed.push(c)
+          i++
+          continue
+        }
+        if (c === '\\' && i + 1 < s.length) {
+          fixed.push(c, s[i + 1])
+          i += 2
+          continue
+        }
+        if (c === quote) {
+          inString = false
+          fixed.push(c)
+          i++
+          continue
+        }
+        if (c === '\n' || c === '\r') {
+          fixed.push(' ')
+          i++
+          continue
+        }
+        fixed.push(c)
+        i++
+      }
+      return JSON.parse(fixed.join(''))
+    }
+
+    let slides: any
     try {
       slides = JSON.parse(jsonText)
-    } catch (parseError) {
-      console.error('Ошибка парсинга JSON:', parseError)
-      console.error('Текст ответа:', jsonText.substring(0, 500))
-      throw new Error(`Не удалось распарсить JSON из ответа AI: ${parseError instanceof Error ? parseError.message : String(parseError)}`)
+    } catch {
+      try {
+        slides = tryParseJson(jsonText)
+      } catch (parseError) {
+        console.error('Ошибка парсинга JSON:', parseError)
+        console.error('Текст ответа:', jsonText.substring(0, 500))
+        throw new Error(`Не удалось распарсить JSON из ответа AI. Проверьте, что модель возвращает только валидный JSON-массив.`)
+      }
     }
 
     // Валидируем и нормализуем слайды

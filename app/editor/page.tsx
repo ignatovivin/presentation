@@ -31,10 +31,16 @@ export default function EditorPage() {
   const [aiGeneratorOpen, setAIGeneratorOpen] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
   const [hasGenerated, setHasGenerated] = useState(false)
-  
+  /** Рендер контента только после монтирования — устраняет гидрацию #418 (store/localStorage/расширения). */
+  const [mounted, setMounted] = useState(false)
+
   // Используем ref для отслеживания запущенной генерации (синхронный доступ)
   const isGeneratingRef = useRef(false)
   const hasGeneratedRef = useRef(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const generateSlidesFromPrompt = useCallback(async (prompt: string, aiSettingsStr: string | null) => {
     if (!prompt || prompt.trim() === '') {
@@ -245,6 +251,18 @@ export default function EditorPage() {
   const currentSlide = currentPresentation?.slides.find(
     (s) => s.id === currentSlideId
   )
+
+  // До монтирования показываем один и тот же placeholder (сервер и клиент совпадают — нет #418)
+  if (!mounted) {
+    return (
+      <div className="h-screen flex flex-col bg-[#fafafa]" suppressHydrationWarning>
+        <div className="h-12 border-b border-gray-200 bg-gray-50" />
+        <div className="flex-1 flex items-center justify-center text-gray-400 text-sm">
+          Загрузка редактора…
+        </div>
+      </div>
+    )
+  }
 
   if (!currentPresentation) {
     return null
