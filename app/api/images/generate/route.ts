@@ -1,7 +1,9 @@
 import Replicate from 'replicate'
 import { NextRequest, NextResponse } from 'next/server'
 
-export const runtime = 'edge'
+// Replicate SDK использует Node.js API — на Vercel Edge даёт 500. Используем Node.js runtime.
+export const runtime = 'nodejs'
+export const maxDuration = 60
 
 export async function POST(request: NextRequest) {
   try {

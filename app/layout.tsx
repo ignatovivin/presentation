@@ -19,7 +19,9 @@ export default function RootLayout({
     <html lang="ru" suppressHydrationWarning>
       <body className={inter.className} suppressHydrationWarning>
         <BrowserExtensionCleaner />
-        {children}
+        <div suppressHydrationWarning style={{ display: 'contents' }}>
+          {children}
+        </div>
       </body>
     </html>
   );
