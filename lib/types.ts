@@ -13,6 +13,8 @@ export interface Presentation {
   id: string
   title: string
   slides: Slide[]
+  /** Выбранный шаблон (minimal, dark, colorful, …) */
+  templateId?: string
   createdAt: number
   updatedAt: number
 }

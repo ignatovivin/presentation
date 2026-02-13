@@ -6,9 +6,9 @@ import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import type { Slide } from '@/lib/types'
 import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-import { Image as ImageIcon, X } from 'lucide-react'
-import { ImageGenerator } from './image-generator'
+// Генерация изображений (Replicate) временно отключена — Button, ImageIcon, X, ImageGenerator
+// import { Image as ImageIcon, X } from 'lucide-react'
+// import { ImageGenerator } from './image-generator'
 
 interface SlideEditorProps {
   slide: Slide
@@ -17,11 +17,11 @@ interface SlideEditorProps {
 }
 
 export function SlideEditor({ slide, onUpdate, onDelete }: SlideEditorProps) {
-  /** Ручной ввод промпта для генерации изображения (если не задан от ИИ) */
-  const [manualImagePrompt, setManualImagePrompt] = useState<string | null>(null)
-  const [showAddImageInput, setShowAddImageInput] = useState(false)
-  const [addImageInputValue, setAddImageInputValue] = useState('')
-  const descriptionToGenerate = slide.imagePrompt || manualImagePrompt
+  // Генерация изображений отключена — не показываем ImageGenerator и кнопку
+  // const [manualImagePrompt, setManualImagePrompt] = useState<string | null>(null)
+  // const [showAddImageInput, setShowAddImageInput] = useState(false)
+  // const [addImageInputValue, setAddImageInputValue] = useState('')
+  // const descriptionToGenerate = slide.imagePrompt || manualImagePrompt
 
   const editor = useEditor({
     extensions: [
@@ -59,19 +59,10 @@ export function SlideEditor({ slide, onUpdate, onDelete }: SlideEditorProps) {
           />
           
           <div className="flex-1 w-full mt-8">
+            {/* Генерация изображений (Replicate) временно отключена
             {descriptionToGenerate && (
-              <ImageGenerator
-                description={descriptionToGenerate}
-                onImageGenerated={(imageUrl) => {
-                  onUpdate({ imageUrl, imagePrompt: undefined })
-                  setManualImagePrompt(null)
-                }}
-                onCancel={() => {
-                  setManualImagePrompt(null)
-                  if (slide.imagePrompt) onUpdate({ imagePrompt: undefined })
-                }}
-              />
-            )}
+              <ImageGenerator ... />
+            )} */}
 
             {slide.imageUrl && slide.imageUrl.startsWith('http') && (
               <div className="relative mb-6">
@@ -83,55 +74,10 @@ export function SlideEditor({ slide, onUpdate, onDelete }: SlideEditorProps) {
               </div>
             )}
 
+            {/* Кнопка «Сгенерировать изображение» отключена
             {!descriptionToGenerate && !slide.imageUrl && (
-              <div className="mb-4 flex items-center gap-2 flex-wrap justify-center">
-                {!showAddImageInput ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="text-sm"
-                    onClick={() => setShowAddImageInput(true)}
-                  >
-                    <ImageIcon className="h-4 w-4 mr-1" />
-                    Сгенерировать изображение
-                  </Button>
-                ) : (
-                  <>
-                    <Input
-                      placeholder="Опишите изображение для слайда..."
-                      value={addImageInputValue}
-                      onChange={(e) => setAddImageInputValue(e.target.value)}
-                      className="max-w-xs"
-                    />
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={() => {
-                        if (addImageInputValue.trim()) {
-                          setManualImagePrompt(addImageInputValue.trim())
-                          setAddImageInputValue('')
-                          setShowAddImageInput(false)
-                        }
-                      }}
-                    >
-                      Генерировать
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setShowAddImageInput(false)
-                        setAddImageInputValue('')
-                      }}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </>
-                )}
-              </div>
-            )}
+              <div className="mb-4">... Сгенерировать изображение ...</div>
+            )} */}
 
             <div className="min-h-[200px]">
               <EditorContent editor={editor} />

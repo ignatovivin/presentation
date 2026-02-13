@@ -27,11 +27,11 @@ export default function HomePage() {
       alert('Пожалуйста, введите текст для презентации')
       return
     }
+    const topic = content.trim()
     if (typeof window !== 'undefined') {
-      localStorage.setItem('prompt', content.trim())
-      localStorage.setItem('should-generate', 'true')
+      localStorage.setItem('prompt', topic)
     }
-    router.push('/generating')
+    router.push(`/template?topic=${encodeURIComponent(topic)}`)
   }
 
   const handleFilesClick = () => {

@@ -45,8 +45,8 @@ export function BrowserExtensionCleaner() {
       })
     }
 
-    // Удаляем элементы периодически на случай, если расширение добавляет их позже
-    const interval = setInterval(removeExtensionElements, 100)
+    // Периодическая проверка реже, чтобы не нагружать главный поток
+    const interval = setInterval(removeExtensionElements, 2000)
 
     // Очистка при размонтировании
     return () => {

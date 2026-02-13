@@ -7,7 +7,7 @@ interface PresentationState {
   presentations: Presentation[]
   
   // Actions
-  createPresentation: (title?: string) => void
+  createPresentation: (title?: string, templateId?: string) => void
   updatePresentation: (id: string, updates: Partial<Presentation>) => void
   deletePresentation: (id: string) => void
   setCurrentPresentation: (id: string) => void
@@ -34,11 +34,12 @@ export const usePresentationStore = create<PresentationState>()(
       currentPresentation: null,
       presentations: [],
 
-      createPresentation: (title = 'Презентация без названия') => {
+      createPresentation: (title = 'Презентация без названия', templateId?: string) => {
         const newPresentation: Presentation = {
           id: `pres-${Date.now()}`,
           title,
           slides: [createDefaultSlide(0)],
+          templateId: templateId ?? undefined,
           createdAt: Date.now(),
           updatedAt: Date.now(),
         }

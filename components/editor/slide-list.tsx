@@ -28,6 +28,13 @@ import {
 } from '@/components/ui/dropdown-menu'
 import type { Slide } from '@/lib/types'
 
+const SLIDE_TYPES: Array<{ type: Slide['type']; label: string }> = [
+  { type: 'title', label: 'Title' },
+  { type: 'content', label: 'Content' },
+  { type: 'image', label: 'Image' },
+  { type: 'split', label: 'Split' },
+]
+
 interface SlideListProps {
   slides: Slide[]
   currentSlideId: string | null
@@ -199,22 +206,13 @@ export function SlideList({
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event
-
     if (over && active.id !== over.id) {
       const oldIndex = slides.findIndex((s) => s.id === active.id)
       const newIndex = slides.findIndex((s) => s.id === over.id)
-
       const reorderedSlides = arrayMove(slides, oldIndex, newIndex)
       onReorderSlides(reorderedSlides.map((s) => s.id))
     }
   }
-
-  const slideTypes: Array<{ type: Slide['type']; label: string }> = [
-    { type: 'title', label: 'Title' },
-    { type: 'content', label: 'Content' },
-    { type: 'image', label: 'Image' },
-    { type: 'split', label: 'Split' },
-  ]
 
   return (
     <div className="w-[200px] border-r border-gray-200 bg-white flex flex-col">
@@ -257,7 +255,7 @@ export function SlideList({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-48">
-            {slideTypes.map(({ type, label }) => (
+            {SLIDE_TYPES.map(({ type, label }) => (
               <DropdownMenuItem
                 key={type}
                 onClick={() => onAddSlide(type)}

@@ -1,6 +1,9 @@
 import type { NextConfig } from 'next'
+import path from 'path'
 
 const nextConfig: NextConfig = {
+  // Корень проекта для file tracing (чтобы не подхватывать lockfile из родительской папки)
+  outputFileTracingRoot: path.join(process.cwd()),
   async redirects() {
     return [{ source: '/favicon.ico', destination: '/icon', permanent: false }]
   },

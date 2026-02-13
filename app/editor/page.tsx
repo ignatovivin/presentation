@@ -14,6 +14,15 @@ import {
   ArrowLeft,
 } from 'lucide-react'
 
+const TEMPLATE_NAMES: Record<string, string> = {
+  minimal: 'Минимализм',
+  dark: 'Тёмная тема',
+  colorful: 'Яркий',
+  corporate: 'Корпоративный',
+  gradient: 'Градиенты',
+  mono: 'Монохром',
+}
+
 export default function EditorPage() {
   const router = useRouter()
   const {
@@ -191,22 +200,25 @@ export default function EditorPage() {
     const aiSettings = localStorage.getItem('ai-settings')
     const shouldGenerate = localStorage.getItem('should-generate') === 'true'
 
-    // Если установлен флаг should-generate, создаём новую презентацию
+    // Шаблон, выбранный на странице /template (сохраняем в презентацию)
+    const templateId = typeof window !== 'undefined' ? localStorage.getItem('presentation-template') : null
+
+    // Если установлен флаг should-generate, создаём новую презентацию с шаблоном
     if (shouldGenerate && prompt && !isGeneratingRef.current && !hasGeneratedRef.current) {
       localStorage.removeItem('should-generate')
-      
+
       if (currentPresentation) {
         const store = usePresentationStore.getState()
         store.deletePresentation(currentPresentation.id)
       }
-      
+
       hasGeneratedRef.current = false
       setHasGenerated(false)
-      
+
       const title = prompt.length > 50 ? prompt.substring(0, 50) + '...' : prompt
-      
+
       setTimeout(() => {
-        createPresentation(title)
+        createPresentation(title, templateId || undefined)
         setTimeout(() => {
           generateSlidesFromPrompt(prompt, aiSettings)
         }, 100)
@@ -217,13 +229,13 @@ export default function EditorPage() {
     // Если нет презентации, создаём новую и генерируем слайды через AI
     if (!currentPresentation && !isGeneratingRef.current) {
       if (!prompt) {
-        createPresentation('Презентация без названия')
+        createPresentation('Презентация без названия', templateId || undefined)
         return
       }
-      
+
       const title = prompt.length > 50 ? prompt.substring(0, 50) + '...' : prompt
-      createPresentation(title)
-      
+      createPresentation(title, templateId || undefined)
+
       setTimeout(() => {
         generateSlidesFromPrompt(prompt, aiSettings)
       }, 100)
@@ -251,6 +263,46 @@ export default function EditorPage() {
   const currentSlide = currentPresentation?.slides.find(
     (s) => s.id === currentSlideId
   )
+
+  const handleAddSlide = useCallback((type: Slide['type'] = 'content') => {
+    if (!currentPresentation) return
+    const slideCount = currentPresentation.slides.length
+    addSlide({ type, title: 'Новый слайд', content: '' })
+    setTimeout(() => {
+      const updated = usePresentationStore.getState().currentPresentation
+      const newSlide = updated?.slides.find((s) => s.order === slideCount)
+      if (newSlide) setCurrentSlideId(newSlide.id)
+    }, 100)
+  }, [currentPresentation, addSlide])
+
+  const handleDeleteSlide = useCallback((slideId: string) => {
+    if (!currentPresentation) return
+    const remaining = currentPresentation.slides.filter((s) => s.id !== slideId)
+    if (remaining.length > 0 && currentSlideId === slideId) {
+      setCurrentSlideId(remaining[0].id)
+    }
+    deleteSlide(slideId)
+  }, [currentPresentation, currentSlideId, deleteSlide])
+
+  const handleChangeSlideType = useCallback((slideId: string) => {
+    if (!currentPresentation) return
+    const slide = currentPresentation.slides.find((s) => s.id === slideId)
+    if (!slide) return
+    const types: Slide['type'][] = ['title', 'content', 'image', 'split']
+    const nextType = types[(types.indexOf(slide.type) + 1) % types.length]
+    updateSlide(slideId, { type: nextType })
+  }, [currentPresentation, updateSlide])
+
+  const handleSlideUpdate = useCallback((updates: Partial<Slide>) => {
+    if (currentSlide) updateSlide(currentSlide.id, updates)
+  }, [currentSlide, updateSlide])
+
+  const handleSlideDelete = useCallback(() => {
+    if (!currentSlide || !currentPresentation) return
+    const remaining = currentPresentation.slides.filter((s) => s.id !== currentSlide.id)
+    if (remaining.length > 0) setCurrentSlideId(remaining[0].id)
+    deleteSlide(currentSlide.id)
+  }, [currentSlide, currentPresentation, deleteSlide])
 
   // До монтирования показываем один и тот же placeholder (сервер и клиент совпадают — нет #418)
   if (!mounted) {
@@ -289,6 +341,11 @@ export default function EditorPage() {
             className="text-sm font-medium border-none bg-transparent focus-visible:ring-0 max-w-md px-2 h-8"
             placeholder="Без названия"
           />
+          {currentPresentation.templateId && (
+            <span className="text-xs text-gray-500 whitespace-nowrap">
+              Шаблон: {TEMPLATE_NAMES[currentPresentation.templateId] || currentPresentation.templateId}
+            </span>
+          )}
         </div>
 
         <div className="flex items-center gap-2">
@@ -311,43 +368,10 @@ export default function EditorPage() {
           currentSlideId={currentSlideId}
           onSelectSlide={setCurrentSlideId}
           onReorderSlides={reorderSlides}
-          onAddSlide={(type = 'content') => {
-            const slideCount = currentPresentation.slides.length
-            addSlide({
-              type,
-              title: 'Новый слайд',
-              content: '',
-            })
-            setTimeout(() => {
-              const updatedPresentation = usePresentationStore.getState().currentPresentation
-              if (updatedPresentation) {
-                const newSlide = updatedPresentation.slides.find(s => s.order === slideCount)
-                if (newSlide) {
-                  setCurrentSlideId(newSlide.id)
-                }
-              }
-            }, 100)
-          }}
-          onDuplicateSlide={(slideId) => {
-            duplicateSlide(slideId)
-          }}
-          onDeleteSlide={(slideId) => {
-            const remainingSlides = currentPresentation.slides.filter(
-              (s) => s.id !== slideId
-            )
-            if (remainingSlides.length > 0 && currentSlideId === slideId) {
-              setCurrentSlideId(remainingSlides[0].id)
-            }
-            deleteSlide(slideId)
-          }}
-          onChangeSlideType={(slideId) => {
-            const slide = currentPresentation.slides.find((s) => s.id === slideId)
-            if (!slide) return
-            const types: Slide['type'][] = ['title', 'content', 'image', 'split']
-            const currentIndex = types.indexOf(slide.type)
-            const nextType = types[(currentIndex + 1) % types.length]
-            updateSlide(slideId, { type: nextType })
-          }}
+          onAddSlide={handleAddSlide}
+          onDuplicateSlide={duplicateSlide}
+          onDeleteSlide={handleDeleteSlide}
+          onChangeSlideType={handleChangeSlideType}
         />
 
         {/* Центральная область - белый фон, минималистичный */}
@@ -356,16 +380,8 @@ export default function EditorPage() {
             <div id={`slide-${currentSlide.id}`} className="h-full flex items-center justify-center p-8">
               <SlideEditor
                 slide={currentSlide}
-                onUpdate={(updates) => updateSlide(currentSlide.id, updates)}
-                onDelete={() => {
-                  const remainingSlides = currentPresentation.slides.filter(
-                    (s) => s.id !== currentSlide.id
-                  )
-                  if (remainingSlides.length > 0) {
-                    setCurrentSlideId(remainingSlides[0].id)
-                  }
-                  deleteSlide(currentSlide.id)
-                }}
+                onUpdate={handleSlideUpdate}
+                onDelete={handleSlideDelete}
               />
             </div>
           ) : (

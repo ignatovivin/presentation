@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import { usePresentationStore } from '@/store/presentation-store'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, X } from 'lucide-react'
-import dynamic from 'next/dynamic'
 
 export default function PresentPage() {
   const router = useRouter()

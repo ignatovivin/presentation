@@ -251,10 +251,11 @@ async function getGigaChatAccessToken(): Promise<string> {
 
 export async function POST(request: NextRequest) {
   try {
-    const authKey = process.env.GIGACHAT_AUTH_KEY
+    const authKeyRaw = process.env.GIGACHAT_AUTH_KEY
+    const authKey = authKeyRaw?.trim()
     if (!authKey) {
       return NextResponse.json(
-        { error: 'GIGACHAT_AUTH_KEY не настроен. Установите ваш ключ авторизации в файле .env и перезапустите сервер.' },
+        { error: 'GIGACHAT_AUTH_KEY не настроен. Установите ключ в .env (или в настройках Vercel) и перезапустите сервер.' },
         { status: 500 }
       )
     }
@@ -558,21 +559,20 @@ ${includeImages && imageType !== 'none' ? '- imageDescription: краткое о
 
     return NextResponse.json({ slides: normalizedSlides })
   } catch (error) {
-    console.error('AI generation error:', error)
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-    const errorStack = error instanceof Error ? error.stack : undefined
-    console.error('Error details:', {
-      message: errorMessage,
-      stack: errorStack,
-      name: error instanceof Error ? error.name : undefined,
-    })
-    
-    // Возвращаем более информативный ответ об ошибке
+    const err = error instanceof Error ? error : new Error(String(error))
+    console.error('AI generation error:', err.message, err.stack)
+    const errorMessage = err.message || 'Unknown error'
+    const isAuthError = /GIGACHAT_AUTH_KEY|токен|авторизац|401|Authorization/i.test(errorMessage)
+    const isNetworkError = /fetch failed|ECONNREFUSED|ETIMEDOUT|network|подключ/i.test(errorMessage)
+    const isTimeoutError = /aborted|timeout|Таймаут/i.test(errorMessage)
+    const userMessage =
+      isAuthError ? errorMessage
+      : isNetworkError ? `Сеть: ${errorMessage}. Проверьте доступ к GigaChat (на Vercel включите GIGACHAT_DISABLE_SSL_CHECK=true при необходимости).`
+      : isTimeoutError ? 'Таймаут запроса к GigaChat. Попробуйте снова.'
+      : `Ошибка генерации: ${errorMessage}`
+
     return NextResponse.json(
-      { 
-        error: `Failed to generate presentation: ${errorMessage}`,
-        details: process.env.NODE_ENV === 'development' ? errorStack : undefined
-      },
+      { error: userMessage },
       { status: 500 }
     )
   }

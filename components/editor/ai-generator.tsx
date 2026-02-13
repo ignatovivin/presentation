@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
@@ -10,96 +10,62 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 
+const DEFAULT_SETTINGS = {
+  imageType: 'realistic',
+  tone: 'professional',
+  language: 'russian',
+  audience: '',
+}
+
+function getInitialSettings() {
+  if (typeof window === 'undefined') return DEFAULT_SETTINGS
+  try {
+    const saved = localStorage.getItem('ai-settings')
+    if (saved) {
+      const parsed = JSON.parse(saved)
+      return {
+        imageType: parsed.imageType ?? DEFAULT_SETTINGS.imageType,
+        tone: parsed.tone ?? DEFAULT_SETTINGS.tone,
+        language: parsed.language ?? DEFAULT_SETTINGS.language,
+        audience: parsed.audience ?? DEFAULT_SETTINGS.audience,
+      }
+    }
+  } catch {}
+  return DEFAULT_SETTINGS
+}
+
 interface AIGeneratorProps {
-  // Событие изменения настроек (используется на главной странице)
   onSettingsChange?: (settings: {
     imageType: string
     tone: string
     language: string
     audience: string
   }) => void
-  // Дополнительные пропсы для совместимости с использованием в EditorPage
-  // (управление открытием/закрытием, сейчас внутри компонента не используются)
   open?: boolean
   onOpenChange?: (open: boolean) => void
 }
 
 export function AIGenerator({ onSettingsChange }: AIGeneratorProps) {
-  // Load settings from localStorage on mount
-  const [imageType, setImageType] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('ai-settings')
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved)
-          return parsed.imageType || 'realistic'
-        } catch {}
-      }
-    }
-    return 'realistic'
-  })
-  
-  const [tone, setTone] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('ai-settings')
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved)
-          return parsed.tone || 'professional'
-        } catch {}
-      }
-    }
-    return 'professional'
-  })
-  
-  const [language, setLanguage] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('ai-settings')
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved)
-          return parsed.language || 'russian'
-        } catch {}
-      }
-    }
-    return 'russian'
-  })
-  
-  const [audience, setAudience] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('ai-settings')
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved)
-          return parsed.audience || ''
-        } catch {}
-      }
-    }
-    return ''
-  })
+  const [settings, setSettings] = useState(getInitialSettings)
 
-  // Save settings to localStorage whenever they change
   useEffect(() => {
-    const settings = {
-      imageType,
-      tone,
-      language,
-      audience,
-    }
     localStorage.setItem('ai-settings', JSON.stringify(settings))
     onSettingsChange?.(settings)
-  }, [imageType, tone, language, audience, onSettingsChange])
+  }, [settings, onSettingsChange])
+
+  const update = useCallback(<K extends keyof typeof settings>(key: K, value: typeof settings[K]) => {
+    setSettings((prev) => ({ ...prev, [key]: value }))
+  }, [])
 
   return (
     <>
         <div className="space-y-3">
-          {/* Первая строка: Image type и Tone рядом */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-sm font-medium text-black mb-1 block">
                 Тип изображения
               </label>
-              <Select value={imageType} onValueChange={setImageType}>
+              <Select value={settings.imageType} onValueChange={(v) => update('imageType', v)}>
                 <SelectTrigger 
                   className="w-full focus:!border-[rgb(52,137,243)] focus:ring-0 focus:ring-offset-0 focus-visible:!border-[rgb(52,137,243)] focus-visible:ring-0 focus-visible:ring-offset-0 data-[state=open]:!border-[rgb(52,137,243)]"
                   style={{
@@ -124,7 +90,7 @@ export function AIGenerator({ onSettingsChange }: AIGeneratorProps) {
               <label className="text-sm font-medium text-black mb-1 block">
                 Тон
               </label>
-              <Select value={tone} onValueChange={setTone}>
+              <Select value={settings.tone} onValueChange={(v) => update('tone', v)}>
                 <SelectTrigger 
                   className="w-full focus:!border-[rgb(52,137,243)] focus:ring-0 focus:ring-offset-0 focus-visible:!border-[rgb(52,137,243)] focus-visible:ring-0 focus-visible:ring-offset-0 data-[state=open]:!border-[rgb(52,137,243)]"
                   style={{
@@ -151,7 +117,7 @@ export function AIGenerator({ onSettingsChange }: AIGeneratorProps) {
             <label className="text-sm font-medium text-black mb-1 block">
               Язык
             </label>
-            <Select value={language} onValueChange={setLanguage}>
+            <Select value={settings.language} onValueChange={(v) => update('language', v)}>
               <SelectTrigger 
                 className="w-full focus:!border-[rgb(52,137,243)] focus:ring-0 focus:ring-offset-0 focus-visible:!border-[rgb(52,137,243)] focus-visible:ring-0 focus-visible:ring-offset-0 data-[state=open]:!border-[rgb(52,137,243)]"
                 style={{
@@ -179,8 +145,8 @@ export function AIGenerator({ onSettingsChange }: AIGeneratorProps) {
               Аудитория
             </label>
             <Textarea
-              value={audience}
-              onChange={(e) => setAudience(e.target.value)}
+              value={settings.audience}
+              onChange={(e) => update('audience', e.target.value)}
               placeholder="Опишите вашу аудиторию, чтобы ИИ мог настроить контент."
               className="w-full min-h-[80px] resize-none placeholder:text-gray-400 focus:!border-[rgb(52,137,243)] focus:ring-0 focus:ring-offset-0 focus-visible:!border-[rgb(52,137,243)] focus-visible:ring-0 focus-visible:ring-offset-0"
               style={{

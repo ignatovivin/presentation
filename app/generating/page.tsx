@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
 
@@ -16,39 +16,23 @@ export default function GeneratingPage() {
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState(0)
   const [progress, setProgress] = useState(0)
+  const timersRef = useRef<{ progress?: ReturnType<typeof setInterval>; step?: ReturnType<typeof setInterval>; nav?: ReturnType<typeof setTimeout> }>({})
 
   useEffect(() => {
-    // Симуляция прогресса генерации
-    const progressInterval = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(progressInterval)
-          return 100
-        }
-        return prev + 2
-      })
+    timersRef.current.progress = setInterval(() => {
+      setProgress((prev) => (prev >= 100 ? 100 : prev + 2))
     }, 100)
 
-    // Переключение шагов
-    const stepInterval = setInterval(() => {
-      setCurrentStep((prev) => {
-        if (prev >= GENERATION_STEPS.length - 1) {
-          clearInterval(stepInterval)
-          return prev
-        }
-        return prev + 1
-      })
+    timersRef.current.step = setInterval(() => {
+      setCurrentStep((prev) => (prev >= GENERATION_STEPS.length - 1 ? prev : prev + 1))
     }, 1500)
 
-    // Переход на экран редактора после завершения
-    const timeout = setTimeout(() => {
-      router.push('/editor')
-    }, 7500)
+    timersRef.current.nav = setTimeout(() => router.push('/editor'), 7500)
 
     return () => {
-      clearInterval(progressInterval)
-      clearInterval(stepInterval)
-      clearTimeout(timeout)
+      if (timersRef.current.progress) clearInterval(timersRef.current.progress)
+      if (timersRef.current.step) clearInterval(timersRef.current.step)
+      if (timersRef.current.nav) clearTimeout(timersRef.current.nav)
     }
   }, [router])
 
