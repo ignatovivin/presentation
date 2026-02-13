@@ -6,6 +6,11 @@ import http from 'http'
 
 export const runtime = 'nodejs'
 
+// Отключаем проверку SSL сертификатов для GigaChat API (если есть проблемы с сертификатами)
+if (process.env.GIGACHAT_DISABLE_SSL_CHECK === 'true') {
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
+}
+
 // ——— Эндпоинты GigaChat API (официальная документация: https://developers.sber.ru/docs/ru/gigachat/api/reference/rest/gigachat-api) ———
 // Токен: POST с заголовком Authorization: Basic <Base64(Client ID:Client Secret)>, тело scope=GIGACHAT_API_PERS|B2B|CORP
 const GIGACHAT_OAUTH_URL = process.env.GIGACHAT_OAUTH_URL ?? 'https://ngw.devices.sberbank.ru:9443/api/v2/oauth'
@@ -17,8 +22,66 @@ const GIGACHAT_ALLOWED_MODELS = ['GigaChat-2', 'GigaChat-2-Lite', 'GigaChat-2-Pr
 const GIGACHAT_MODEL = process.env.GIGACHAT_MODEL ?? 'GigaChat-2-Pro'
 
 /**
+ * Альтернативный fetch через https.request (для случаев когда стандартный fetch не работает на Vercel)
+ */
+async function fetchViaHttpsRequest(
+  url: string,
+  options: {
+    method?: string
+    headers?: Record<string, string>
+    body?: string | URLSearchParams
+    signal?: AbortSignal
+  }
+): Promise<Response> {
+  return new Promise((resolve, reject) => {
+    const urlObj = new URL(url)
+    const isHttps = urlObj.protocol === 'https:'
+    const client = isHttps ? https : http
+
+    const requestOptions: https.RequestOptions = {
+      hostname: urlObj.hostname,
+      port: urlObj.port ? parseInt(urlObj.port, 10) : (isHttps ? 443 : 80),
+      path: urlObj.pathname + urlObj.search,
+      method: options.method || 'GET',
+      headers: options.headers || {},
+      rejectUnauthorized: process.env.GIGACHAT_DISABLE_SSL_CHECK !== 'true',
+    }
+
+    const req = client.request(requestOptions, (res) => {
+      const chunks: Buffer[] = []
+      res.on('data', (chunk) => chunks.push(chunk))
+      res.on('end', () => {
+        const body = Buffer.concat(chunks).toString()
+        const response = new Response(body, {
+          status: res.statusCode || 500,
+          statusText: res.statusMessage || 'OK',
+          headers: res.headers as HeadersInit,
+        })
+        resolve(response)
+      })
+    })
+
+    req.on('error', reject)
+    if (options.signal) {
+      options.signal.addEventListener('abort', () => {
+        req.destroy()
+        reject(new Error('Request aborted'))
+      })
+    }
+
+    if (options.body) {
+      const bodyStr = options.body instanceof URLSearchParams ? options.body.toString() : options.body
+      req.write(bodyStr)
+    }
+    req.end()
+  })
+}
+
+/**
  * Создает fetch с поддержкой прокси из переменных окружения
- * и кастомным HTTPS agent с отключенной проверкой SSL сертификатов
+ * Node.js 18+ fetch использует undici и автоматически использует HTTP_PROXY/HTTPS_PROXY
+ * Для отключения проверки SSL используйте переменную GIGACHAT_DISABLE_SSL_CHECK=true
+ * Если стандартный fetch не работает, используется альтернативный способ через https.request
  */
 function createFetchWithProxy() {
   const httpsProxy = process.env.HTTPS_PROXY || process.env.HTTP_PROXY
@@ -31,19 +94,17 @@ function createFetchWithProxy() {
     })
   }
 
-  // 🔥 СОЗДАЁМ CUSTOM AGENT с отключенной проверкой SSL
-  const httpsAgent = new https.Agent({
-    rejectUnauthorized: false, // Игнорируем ошибки сертификатов
-  })
+  // Используем альтернативный способ если установлена переменная или на Vercel
+  const useHttpsRequest = process.env.GIGACHAT_USE_HTTPS_REQUEST === 'true' || process.env.VERCEL === '1'
 
-  // 🔥 ВОЗВРАЩАЕМ ОБЁРТКУ НАД FETCH
-  return async (url: string, options: any = {}) => {
-    return fetch(url, {
-      ...options,
-      // @ts-ignore - Node.js поддерживает agent в fetch
-      agent: url.startsWith('https') ? httpsAgent : undefined,
-    })
+  if (useHttpsRequest) {
+    console.log('Используется альтернативный способ запроса через https.request')
+    return fetchViaHttpsRequest as typeof fetch
   }
+
+  // Node.js 18+ fetch автоматически использует HTTP_PROXY и HTTPS_PROXY из process.env
+  // Для отключения проверки SSL сертификатов установите GIGACHAT_DISABLE_SSL_CHECK=true
+  return fetch
 }
 
 // Кэш для токена доступа GigaChat (действителен 30 минут)
@@ -104,6 +165,18 @@ async function getGigaChatAccessToken(): Promise<string> {
     const timeoutId = setTimeout(() => controller.abort(), 30000)
 
     const fetchFn = createFetchWithProxy()
+    
+    console.log('Отправка запроса токена:', {
+      url: GIGACHAT_OAUTH_URL,
+      method: 'POST',
+      hasAuthKey: !!authKey,
+      scope,
+      rqUID,
+      nodeEnv: process.env.NODE_ENV,
+      hasProxy: !!(process.env.HTTPS_PROXY || process.env.HTTP_PROXY),
+      disableSSL: process.env.GIGACHAT_DISABLE_SSL_CHECK === 'true',
+    })
+    
     const tokenResponse = await fetchFn(GIGACHAT_OAUTH_URL, {
       method: 'POST',
       headers: {
@@ -121,9 +194,12 @@ async function getGigaChatAccessToken(): Promise<string> {
       
       console.error('Ошибка сети при запросе токена:', {
         error: errorMessage,
+        errorName: fetchError instanceof Error ? fetchError.name : undefined,
+        errorStack: fetchError instanceof Error ? fetchError.stack : undefined,
         url: GIGACHAT_OAUTH_URL,
         isTimeout: isAborted,
         cause: fetchError instanceof Error ? fetchError.cause : undefined,
+        nodeVersion: process.version,
       })
       
       if (isAborted) {
