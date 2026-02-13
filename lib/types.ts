@@ -1,3 +1,8 @@
+/** Горизонтальное выравнивание контента в блоке слайда */
+export type ContentAlign = 'left' | 'center' | 'right'
+/** Вертикальное выравнивание контента в блоке слайда */
+export type VerticalAlign = 'top' | 'middle' | 'bottom'
+
 export interface Slide {
   id: string
   type: 'title' | 'content' | 'image' | 'split'
@@ -7,6 +12,14 @@ export interface Slide {
   /** Описание для генерации изображения (от ИИ или введённое вручную) */
   imagePrompt?: string
   order: number
+  /** Позиция блока по горизонтали (только блок) */
+  contentAlign?: ContentAlign
+  /** Позиция блока по вертикали (только блок) */
+  verticalAlign?: VerticalAlign
+  /** Выравнивание текста заголовка */
+  titleAlign?: ContentAlign
+  /** Выравнивание текста тела слайда */
+  bodyAlign?: ContentAlign
 }
 
 export interface Presentation {

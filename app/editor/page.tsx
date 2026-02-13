@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import { usePresentationStore } from '@/store/presentation-store'
 import { SlideList } from '@/components/editor/slide-list'
 import { SlideEditor } from '@/components/editor/slide-editor'
-import { AIGenerator } from '@/components/editor/ai-generator'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import type { Slide } from '@/lib/types'
@@ -37,7 +36,6 @@ export default function EditorPage() {
   } = usePresentationStore()
 
   const [currentSlideId, setCurrentSlideId] = useState<string | null>(null)
-  const [aiGeneratorOpen, setAIGeneratorOpen] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
   const [hasGenerated, setHasGenerated] = useState(false)
   /** Рендер контента только после монтирования — устраняет гидрацию #418 (store/localStorage/расширения). */
@@ -307,8 +305,8 @@ export default function EditorPage() {
   // До монтирования показываем один и тот же placeholder (сервер и клиент совпадают — нет #418)
   if (!mounted) {
     return (
-      <div className="h-screen flex flex-col bg-[#fafafa]" suppressHydrationWarning>
-        <div className="h-12 border-b border-gray-200 bg-gray-50" />
+      <div className="h-screen flex flex-col bg-[rgb(255,255,255)]" suppressHydrationWarning>
+        <div className="h-12 border-b border-gray-200 bg-[rgb(255,255,255)]" />
         <div className="flex-1 flex items-center justify-center text-gray-400 text-sm">
           Загрузка редактора…
         </div>
@@ -321,9 +319,8 @@ export default function EditorPage() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-[#fafafa]">
-      {/* Top Bar - тонкий, светло-серый */}
-      <header className="h-12 border-b border-gray-200 bg-gray-50 px-4 flex items-center justify-between">
+    <div className="h-screen flex flex-col bg-[rgb(255,255,255)]">
+      <header className="h-12 bg-[rgb(255,255,255)] px-4 flex items-center justify-between">
         <div className="flex items-center gap-3 flex-1">
           <Button
             variant="ghost"
@@ -374,15 +371,27 @@ export default function EditorPage() {
           onChangeSlideType={handleChangeSlideType}
         />
 
-        {/* Центральная область - белый фон, минималистичный */}
-        <div className="flex-1 overflow-y-auto bg-white">
+        {/* Центральная область — окно слайда 1558×878 по центру */}
+        <div className="relative flex-1 overflow-hidden bg-white flex items-center justify-center p-4 min-h-0">
           {currentSlide ? (
-            <div id={`slide-${currentSlide.id}`} className="h-full flex items-center justify-center p-8">
-              <SlideEditor
-                slide={currentSlide}
-                onUpdate={handleSlideUpdate}
-                onDelete={handleSlideDelete}
-              />
+            <div
+              id={`slide-${currentSlide.id}`}
+              className="absolute inset-0 flex items-center justify-center p-6"
+            >
+              {/* Окно слайда: адаптивно от 1920 (1558×878), по центру */}
+              <div
+                className="aspect-[1558/878] bg-white shrink-0 overflow-hidden rounded-[32px]"
+                style={{
+                  // При 1920×1080 = 1558×878; масштаб по экрану (vw/vh), не больше 1558×878
+                  width: 'min(81.15vw, 144.2vh, 1558px)',
+                }}
+              >
+                <SlideEditor
+                  slide={currentSlide}
+                  onUpdate={handleSlideUpdate}
+                  onDelete={handleSlideDelete}
+                />
+              </div>
             </div>
           ) : (
             <div className="flex items-center justify-center h-full text-gray-400">
@@ -391,8 +400,6 @@ export default function EditorPage() {
           )}
         </div>
       </div>
-
-      <AIGenerator open={aiGeneratorOpen} onOpenChange={setAIGeneratorOpen} />
     </div>
   )
 }

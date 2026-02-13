@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   DndContext,
   closestCenter,
@@ -18,22 +18,8 @@ import {
   useSortable,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Plus, MoreVertical, Copy, Trash2, Palette } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+import { Plus, Copy, Trash2, Palette } from 'lucide-react'
 import type { Slide } from '@/lib/types'
-
-const SLIDE_TYPES: Array<{ type: Slide['type']; label: string }> = [
-  { type: 'title', label: 'Title' },
-  { type: 'content', label: 'Content' },
-  { type: 'image', label: 'Image' },
-  { type: 'split', label: 'Split' },
-]
 
 interface SlideListProps {
   slides: Slide[]
@@ -61,7 +47,21 @@ function SortableSlideItem({
   onDelete: () => void
   onChangeType: () => void
 }) {
-  const [isHovered, setIsHovered] = useState(false)
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null)
+
+  useEffect(() => {
+    if (!contextMenu) return
+    const close = () => setContextMenu(null)
+    document.addEventListener('click', close)
+    document.addEventListener('contextmenu', close)
+    document.addEventListener('keydown', (e) => e.key === 'Escape' && close())
+    return () => {
+      document.removeEventListener('click', close)
+      document.removeEventListener('contextmenu', close)
+      document.removeEventListener('keydown', close)
+    }
+  }, [contextMenu])
+
   const {
     attributes,
     listeners,
@@ -77,111 +77,106 @@ function SortableSlideItem({
     opacity: isDragging ? 0.5 : 1,
   }
 
-  // Миниатюра слайда (160x90px) - минималистичный стиль
-  const renderThumbnail = () => {
-    return (
-      <div className="w-[160px] h-[90px] bg-white rounded border border-gray-300 flex items-center justify-center text-xs overflow-hidden relative">
-        {slide.imageUrl ? (
-          <img
-            src={slide.imageUrl}
-            alt={slide.title}
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <div className="w-full h-full p-2 flex flex-col items-center justify-center">
-            {/* Простые блоки-плейсхолдеры для текста */}
-            <div className="w-full space-y-1">
-              <div className="h-2 bg-gray-300 rounded w-3/4 mx-auto"></div>
-              <div className="h-2 bg-gray-200 rounded w-2/3 mx-auto"></div>
-              {slide.type === 'content' && (
-                <>
-                  <div className="h-1.5 bg-gray-200 rounded w-full mt-2"></div>
-                  <div className="h-1.5 bg-gray-200 rounded w-5/6"></div>
-                </>
-              )}
+  const stripHtml = (html: string) => (html || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 40)
+
+  const renderThumbnail = () => (
+    <div className="w-[78px] h-[56px] bg-white rounded-xl border overflow-hidden flex-shrink-0 transition-all duration-200 hover:scale-[1.02]"
+      style={{ borderColor: 'rgba(0, 0, 0, 0.08)' }}
+    >
+      {slide.imageUrl ? (
+        <img src={slide.imageUrl} alt="" className="w-full h-full object-cover" />
+      ) : (
+        <div className="w-full h-full p-1 flex flex-col justify-center overflow-hidden">
+          {slide.title && (
+            <div className="text-[8px] font-semibold text-gray-900 truncate leading-tight">
+              {slide.title}
             </div>
-          </div>
-        )}
-      </div>
-    )
-  }
+          )}
+          {slide.content && (
+            <div className="text-[6px] text-gray-500 truncate leading-tight mt-0.5">
+              {stripHtml(slide.content)}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
 
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className={`relative mb-3 cursor-pointer group ${
-        isDragging ? 'z-50' : ''
-      }`}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      className={`relative mb-2 cursor-pointer group ${isDragging ? 'z-50' : ''}`}
       onClick={onSelect}
+      onContextMenu={(e) => {
+        e.preventDefault()
+        setContextMenu({ x: e.clientX, y: e.clientY })
+      }}
     >
-      {/* Активный слайд - фиолетовая рамка */}
       <div
-        className={`w-[160px] mx-auto transition-all ${
-          isActive
-            ? 'ring-2 ring-purple-500 ring-offset-1 rounded'
-            : ''
+        className={`w-[78px] mx-auto rounded-xl transition-all ${
+          isActive ? 'ring-2 ring-[rgb(52,137,243)] ring-offset-1' : ''
         }`}
       >
         {renderThumbnail()}
       </div>
 
-      {/* Меню при hover */}
-      {isHovered && (
-        <div className="absolute top-0 right-0 z-10">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6 bg-white shadow-sm hover:bg-gray-50"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <MoreVertical className="h-3 w-3" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-              <DropdownMenuItem onClick={(e) => {
-                e.stopPropagation()
-                onDuplicate()
-              }}>
-                <Copy className="h-4 w-4 mr-2" />
-                Duplicate
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={(e) => {
-                e.stopPropagation()
-                onChangeType()
-              }}>
-                <Palette className="h-4 w-4 mr-2" />
-                Change type
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onDelete()
-                }}
-                className="text-red-600"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+      {contextMenu && (
+        <div
+          className="fixed z-[100] min-w-[160px] py-1 bg-white rounded-xl border shadow-lg"
+          style={{
+            left: contextMenu.x,
+            top: contextMenu.y,
+            borderColor: 'rgba(0, 0, 0, 0.08)',
+            boxShadow: 'rgba(0, 0, 0, 0.06) 0px 10px 24px',
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            type="button"
+            className="w-full px-3 py-2 text-left text-sm flex items-center gap-2 hover:bg-[rgba(0,0,0,0.04)] rounded-lg"
+            onClick={() => {
+              setContextMenu(null)
+              onDuplicate()
+            }}
+          >
+            <Copy className="h-4 w-4" />
+            Дублировать
+          </button>
+          <button
+            type="button"
+            className="w-full px-3 py-2 text-left text-sm flex items-center gap-2 hover:bg-[rgba(0,0,0,0.04)] rounded-lg"
+            onClick={() => {
+              setContextMenu(null)
+              onChangeType()
+            }}
+          >
+            <Palette className="h-4 w-4" />
+            Сменить тип
+          </button>
+          <button
+            type="button"
+            className="w-full px-3 py-2 text-left text-sm flex items-center gap-2 hover:bg-red-50 text-red-600 rounded-lg"
+            onClick={() => {
+              setContextMenu(null)
+              onDelete()
+            }}
+          >
+            <Trash2 className="h-4 w-4" />
+            Удалить
+          </button>
         </div>
       )}
 
-      {/* Drag handle */}
       <div
         {...attributes}
         {...listeners}
-        className="absolute top-1 left-1 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity bg-white/80 rounded p-1"
+        className="absolute top-0.5 left-0.5 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 rounded-lg p-0.5 border border-[rgb(231,231,231)]"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="w-1 h-1 bg-gray-400 rounded-full mb-0.5" />
-        <div className="w-1 h-1 bg-gray-400 rounded-full mb-0.5" />
-        <div className="w-1 h-1 bg-gray-400 rounded-full" />
+        <div className="w-0.5 h-0.5 bg-gray-400 rounded-full mb-0.5" />
+        <div className="w-0.5 h-0.5 bg-gray-400 rounded-full mb-0.5" />
+        <div className="w-0.5 h-0.5 bg-gray-400 rounded-full" />
       </div>
     </div>
   )
@@ -215,8 +210,10 @@ export function SlideList({
   }
 
   return (
-    <div className="w-[200px] border-r border-gray-200 bg-white flex flex-col">
-      <div className="flex-1 overflow-y-auto p-3">
+    <div className="w-[110px] border-r flex flex-col bg-[rgb(255,255,255)]"
+      style={{ borderColor: 'rgba(0, 0, 0, 0.08)' }}
+    >
+      <div className="flex-1 overflow-y-auto p-2">
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
@@ -226,7 +223,7 @@ export function SlideList({
             items={slides.map((s) => s.id)}
             strategy={verticalListSortingStrategy}
           >
-            <div>
+            <div className="flex flex-col items-center">
               {slides.map((slide) => (
                 <SortableSlideItem
                   key={slide.id}
@@ -238,33 +235,19 @@ export function SlideList({
                   onChangeType={() => onChangeSlideType(slide.id)}
                 />
               ))}
+              {/* Кнопка добавления — как карточка, без превью */}
+              <button
+                type="button"
+                onClick={() => onAddSlide('content')}
+                className="w-[78px] h-[56px] rounded-xl border flex items-center justify-center flex-shrink-0 mt-2 cursor-pointer bg-white text-[rgb(110,109,109)] transition-all duration-200 hover:scale-[1.02] hover:bg-[rgba(0,0,0,0.04)] hover:text-gray-900"
+                style={{ borderColor: 'rgba(0, 0, 0, 0.08)' }}
+                title="Добавить слайд"
+              >
+                <Plus className="w-5 h-5" />
+              </button>
             </div>
           </SortableContext>
         </DndContext>
-      </div>
-
-      {/* Круглая кнопка Add Slide внизу */}
-      <div className="p-4 flex justify-center border-t border-gray-200">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              className="h-12 w-12 rounded-full bg-gray-100 hover:bg-gray-200 border-0 shadow-sm"
-              size="icon"
-            >
-              <Plus className="h-5 w-5 text-gray-700" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-48">
-            {SLIDE_TYPES.map(({ type, label }) => (
-              <DropdownMenuItem
-                key={type}
-                onClick={() => onAddSlide(type)}
-              >
-                {label}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
       </div>
     </div>
   )
