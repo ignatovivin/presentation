@@ -4,6 +4,26 @@ import { randomUUID } from 'crypto'
 
 export const runtime = 'nodejs'
 
+/**
+ * Создает fetch с поддержкой прокси из переменных окружения
+ * Node.js 18+ автоматически использует HTTP_PROXY и HTTPS_PROXY из process.env
+ */
+function createFetchWithProxy() {
+  const httpsProxy = process.env.HTTPS_PROXY || process.env.HTTP_PROXY
+  const httpProxy = process.env.HTTP_PROXY
+  
+  if (httpsProxy || httpProxy) {
+    console.log('Обнаружен прокси:', {
+      httpsProxy: httpsProxy ? 'настроен' : 'не настроен',
+      httpProxy: httpProxy ? 'настроен' : 'не настроен',
+    })
+  }
+  
+  // В Node.js 18+ fetch автоматически использует HTTP_PROXY и HTTPS_PROXY
+  // Если нужна явная поддержка прокси, можно использовать https-proxy-agent
+  return fetch
+}
+
 // Кэш для токена доступа GigaChat (действителен 30 минут)
 let accessTokenCache: { token: string; expiresAt: number } | null = null
 
@@ -17,11 +37,19 @@ async function getGigaChatAccessToken(): Promise<string> {
     return accessTokenCache.token
   }
 
-  const authKey = process.env.GIGACHAT_AUTH_KEY
+  const authKeyRaw = process.env.GIGACHAT_AUTH_KEY
   const scope = process.env.GIGACHAT_SCOPE || 'GIGACHAT_API_PERS'
 
-  if (!authKey) {
+  if (!authKeyRaw) {
     throw new Error('GIGACHAT_AUTH_KEY не настроен. Установите ваш ключ авторизации в файле .env')
+  }
+
+  // Убираем пробелы и переносы строк из ключа (на случай если они были добавлены при копировании)
+  const authKey = authKeyRaw.trim().replace(/\s/g, '')
+
+  // Проверяем, что ключ похож на Base64 (опциональная валидация)
+  if (!/^[A-Za-z0-9+/=]+$/.test(authKey)) {
+    console.warn('Предупреждение: ключ авторизации содержит недопустимые символы для Base64')
   }
 
   const tokenUrl = 'https://ngw.devices.sberbank.ru:9443/api/v2/oauth'
@@ -31,24 +59,68 @@ async function getGigaChatAccessToken(): Promise<string> {
     scope,
     rqUID,
     hasAuthKey: !!authKey,
+    authKeyLength: authKey.length,
+    authKeyPreview: authKey.substring(0, 10) + '...', // Первые 10 символов для отладки
   })
 
   try {
-    const tokenResponse = await fetch(tokenUrl, {
+    // Используем AbortController для таймаута запроса (30 секунд)
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 30000)
+
+    const fetchFn = createFetchWithProxy()
+    const tokenResponse = await fetchFn(tokenUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
         'Accept': 'application/json',
         'RqUID': rqUID,
-        'Authorization': `Basic ${authKey}`,
+        'Authorization': `Basic ${authKey}`, // Ключ уже должен быть в формате Base64(Client ID:Client Secret)
       },
       body: new URLSearchParams({ scope }),
+      signal: controller.signal,
+    }).catch((fetchError) => {
+      clearTimeout(timeoutId)
+      const errorMessage = fetchError instanceof Error ? fetchError.message : String(fetchError)
+      const isAborted = errorMessage.includes('aborted') || fetchError instanceof Error && fetchError.name === 'AbortError'
+      
+      console.error('Ошибка сети при запросе токена:', {
+        error: errorMessage,
+        url: tokenUrl,
+        isTimeout: isAborted,
+        cause: fetchError instanceof Error ? fetchError.cause : undefined,
+      })
+      
+      if (isAborted) {
+        throw new Error('Таймаут при подключении к серверу GigaChat. Проверьте доступность сервера и интернет-соединение.')
+      }
+      throw new Error(`Не удалось подключиться к серверу GigaChat для получения токена: ${errorMessage}`)
     })
+    
+    clearTimeout(timeoutId)
 
     if (!tokenResponse.ok) {
       const errorText = await tokenResponse.text()
-      console.error('Ошибка получения токена GigaChat:', tokenResponse.status, errorText)
-      throw new Error(`Не удалось получить токен доступа: ${tokenResponse.status} ${errorText}`)
+      console.error('Ошибка получения токена GigaChat:', {
+        status: tokenResponse.status,
+        statusText: tokenResponse.statusText,
+        errorText,
+        url: tokenUrl,
+        scope,
+        authKeyLength: authKey.length,
+        // Не логируем сам ключ из соображений безопасности
+      })
+      
+      let errorMessage = `Не удалось получить токен доступа: ${tokenResponse.status}`
+      if (tokenResponse.status === 401) {
+        errorMessage = 'Ошибка авторизации. Проверьте правильность ключа авторизации (GIGACHAT_AUTH_KEY). Ключ должен быть в формате Base64(Client ID:Client Secret).'
+      } else if (tokenResponse.status === 400) {
+        errorMessage = `Некорректный формат запроса: ${errorText}`
+      } else {
+        errorMessage = `${errorMessage} ${errorText}`
+      }
+      
+      throw new Error(errorMessage)
     }
 
     const tokenData = await tokenResponse.json()
@@ -141,7 +213,8 @@ ${includeImages && imageType !== 'none' ? '4. Краткое описание и
     const gigachatApiUrl = 'https://gigachat.devices.sberbank.ru/api/v1/chat/completions'
     
     const requestBody = {
-      model: 'GigaChat',
+      // Явно используем модель GigaChat-2-Pro (см. docs: selecting-a-model)
+      model: 'GigaChat-2-Pro',
       messages: [
         {
           role: 'system',
@@ -162,7 +235,12 @@ ${includeImages && imageType !== 'none' ? '4. Краткое описание и
       model: requestBody.model,
     })
     
-    const gigachatResponse = await fetch(gigachatApiUrl, {
+    // Используем AbortController для таймаута запроса (60 секунд для генерации)
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 60000)
+
+    const fetchFn = createFetchWithProxy()
+    const gigachatResponse = await fetchFn(gigachatApiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -170,7 +248,26 @@ ${includeImages && imageType !== 'none' ? '4. Краткое описание и
         'Authorization': `Bearer ${accessToken}`,
       },
       body: JSON.stringify(requestBody),
+      signal: controller.signal,
+    }).catch((fetchError) => {
+      clearTimeout(timeoutId)
+      const errorMessage = fetchError instanceof Error ? fetchError.message : String(fetchError)
+      const isAborted = errorMessage.includes('aborted') || fetchError instanceof Error && fetchError.name === 'AbortError'
+      
+      console.error('Ошибка сети при запросе к GigaChat API:', {
+        error: errorMessage,
+        url: gigachatApiUrl,
+        isTimeout: isAborted,
+        cause: fetchError instanceof Error ? fetchError.cause : undefined,
+      })
+      
+      if (isAborted) {
+        throw new Error('Таймаут при запросе к GigaChat API. Генерация заняла слишком много времени.')
+      }
+      throw new Error(`Не удалось подключиться к GigaChat API: ${errorMessage}`)
     })
+    
+    clearTimeout(timeoutId)
 
     if (!gigachatResponse.ok) {
       const errorText = await gigachatResponse.text()

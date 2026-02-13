@@ -27,6 +27,12 @@
    - Значение: токен для генерации изображений через Replicate
    - Получите на: https://replicate.com/account/api-tokens
 
+4. **HTTPS_PROXY** / **HTTP_PROXY**
+   - Значение: URL прокси-сервера (например, `http://proxy.example.com:8080`)
+   - Используется для обхода сетевых ограничений при запросах к GigaChat API
+   - Формат: `http://username:password@proxy.example.com:8080` или `http://proxy.example.com:8080`
+   - Если не указано, запросы идут напрямую
+
 ## Шаг 3: Настройка переменных окружения
 
 1. Откройте ваш проект на Vercel

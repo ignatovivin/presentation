@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { usePresentationStore } from '@/store/presentation-store'
 import { SlideList } from '@/components/editor/slide-list'
@@ -36,9 +36,18 @@ export default function EditorPage() {
   const [isExporting, setIsExporting] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
   const [hasGenerated, setHasGenerated] = useState(false)
+  
+  // Используем ref для отслеживания запущенной генерации (синхронный доступ)
+  const isGeneratingRef = useRef(false)
+  const hasGeneratedRef = useRef(false)
 
   const generateSlidesFromPrompt = useCallback(async (prompt: string, aiSettingsStr: string | null) => {
-    console.log('=== generateSlidesFromPrompt вызвана ===', { prompt, aiSettingsStr, isGenerating, hasGenerated })
+    console.log('=== generateSlidesFromPrompt вызвана ===', { 
+      prompt, 
+      aiSettingsStr, 
+      isGenerating: isGeneratingRef.current, 
+      hasGenerated: hasGeneratedRef.current 
+    })
     
     if (!prompt || prompt.trim() === '') {
       console.error('Промпт пустой или не найден')
@@ -46,12 +55,17 @@ export default function EditorPage() {
     }
 
     // Защита от повторных вызовов - используем ref для синхронной проверки
-    if (isGenerating || hasGenerated) {
-      console.log('Генерация уже выполняется или уже выполнена, пропускаем', { isGenerating, hasGenerated })
+    if (isGeneratingRef.current || hasGeneratedRef.current) {
+      console.log('Генерация уже выполняется или уже выполнена, пропускаем', { 
+        isGenerating: isGeneratingRef.current, 
+        hasGenerated: hasGeneratedRef.current 
+      })
       return
     }
 
     console.log('Начинаем генерацию слайдов...')
+    isGeneratingRef.current = true
+    hasGeneratedRef.current = true
     setIsGenerating(true)
     setHasGenerated(true)
     try {
@@ -192,14 +206,16 @@ export default function EditorPage() {
         }
       }, 100)
     } finally {
+      isGeneratingRef.current = false
       setIsGenerating(false)
     }
-  }, [isGenerating, hasGenerated])
+  }, [])
 
   useEffect(() => {
     console.log('Editor useEffect triggered:', {
       currentPresentation: currentPresentation?.id,
-      isGenerating,
+      isGenerating: isGeneratingRef.current,
+      hasGenerated: hasGeneratedRef.current,
       slidesCount: currentPresentation?.slides.length
     })
 
@@ -208,7 +224,7 @@ export default function EditorPage() {
     const shouldGenerate = localStorage.getItem('should-generate') === 'true'
 
     // Если установлен флаг should-generate, создаём новую презентацию
-    if (shouldGenerate && prompt && !isGenerating && !hasGenerated) {
+    if (shouldGenerate && prompt && !isGeneratingRef.current && !hasGeneratedRef.current) {
       console.log('Флаг should-generate установлен. Создаём новую презентацию.')
       localStorage.removeItem('should-generate') // Удаляем флаг
       
@@ -220,6 +236,7 @@ export default function EditorPage() {
       }
       
       // Сброс флага генерации при создании новой презентации
+      hasGeneratedRef.current = false
       setHasGenerated(false)
       
       // Создаём презентацию с названием из промпта (первые 50 символов)
@@ -240,7 +257,7 @@ export default function EditorPage() {
     }
 
     // Если нет презентации, создаём новую и генерируем слайды через AI
-    if (!currentPresentation && !isGenerating) {
+    if (!currentPresentation && !isGeneratingRef.current) {
       console.log('Создание презентации. Промпт:', prompt, 'Настройки:', aiSettings)
       
       if (!prompt) {
@@ -264,7 +281,7 @@ export default function EditorPage() {
     }
 
     // Если презентация существует, но у неё только один дефолтный слайд и есть промпт - генерируем слайды
-    if (currentPresentation && prompt && !isGenerating && !shouldGenerate && !hasGenerated) {
+    if (currentPresentation && prompt && !isGeneratingRef.current && !shouldGenerate && !hasGeneratedRef.current) {
       const hasOnlyDefaultSlide = currentPresentation.slides.length === 1 && 
         (currentPresentation.slides[0].title === 'Новый слайд' || currentPresentation.slides[0].content === '')
       
@@ -288,7 +305,7 @@ export default function EditorPage() {
       console.log('Выбираем первый слайд:', currentPresentation.slides[0].id)
       setCurrentSlideId(currentPresentation.slides[0].id)
     }
-  }, [currentPresentation, currentSlideId, createPresentation, isGenerating, generateSlidesFromPrompt, hasGenerated])
+  }, [currentPresentation, currentSlideId, createPresentation, generateSlidesFromPrompt])
 
   const currentSlide = currentPresentation?.slides.find(
     (s) => s.id === currentSlideId
