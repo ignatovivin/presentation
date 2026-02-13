@@ -27,13 +27,9 @@ export default function HomePage() {
       alert('Пожалуйста, введите текст для презентации')
       return
     }
-    // Сохраняем промпт для использования на экране outline
     if (typeof window !== 'undefined') {
       localStorage.setItem('prompt', content.trim())
-      localStorage.setItem('should-generate', 'true') // Флаг для генерации новой презентации
-      console.log('Промпт сохранен:', content.trim())
-      const aiSettings = localStorage.getItem('ai-settings')
-      console.log('Настройки AI:', aiSettings)
+      localStorage.setItem('should-generate', 'true')
     }
     router.push('/generating')
   }
@@ -55,8 +51,6 @@ export default function HomePage() {
     ) {
       const text = await file.text()
       setContent((prev) => (prev ? `${prev}\n\n${text}` : text))
-    } else {
-      console.warn('Поддерживаются только текстовые файлы')
     }
 
     event.target.value = ''

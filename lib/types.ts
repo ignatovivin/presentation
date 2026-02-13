@@ -4,6 +4,8 @@ export interface Slide {
   title?: string
   content?: string
   imageUrl?: string
+  /** Описание для генерации изображения (от ИИ или введённое вручную) */
+  imagePrompt?: string
   order: number
 }
 

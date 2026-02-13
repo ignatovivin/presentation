@@ -32,7 +32,11 @@ export function ImageGenerator({
         })
 
         if (!response.ok) {
-          throw new Error('Не удалось создать изображение')
+          const data = await response.json().catch(() => ({}))
+          const msg = data?.error === 'REPLICATE_API_TOKEN not configured'
+            ? 'Генерация изображений не настроена: добавьте REPLICATE_API_TOKEN в .env (см. .env.example)'
+            : (data?.error || 'Не удалось создать изображение')
+          throw new Error(msg)
         }
 
         const { imageUrl } = await response.json()

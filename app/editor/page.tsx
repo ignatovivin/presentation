@@ -10,13 +10,9 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import type { Slide } from '@/lib/types'
 import {
-  Sparkles,
   Play,
-  Download,
   ArrowLeft,
 } from 'lucide-react'
-import html2canvas from 'html2canvas'
-import jsPDF from 'jspdf'
 
 export default function EditorPage() {
   const router = useRouter()
@@ -33,7 +29,6 @@ export default function EditorPage() {
 
   const [currentSlideId, setCurrentSlideId] = useState<string | null>(null)
   const [aiGeneratorOpen, setAIGeneratorOpen] = useState(false)
-  const [isExporting, setIsExporting] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
   const [hasGenerated, setHasGenerated] = useState(false)
   
@@ -42,28 +37,15 @@ export default function EditorPage() {
   const hasGeneratedRef = useRef(false)
 
   const generateSlidesFromPrompt = useCallback(async (prompt: string, aiSettingsStr: string | null) => {
-    console.log('=== generateSlidesFromPrompt вызвана ===', { 
-      prompt, 
-      aiSettingsStr, 
-      isGenerating: isGeneratingRef.current, 
-      hasGenerated: hasGeneratedRef.current 
-    })
-    
     if (!prompt || prompt.trim() === '') {
-      console.error('Промпт пустой или не найден')
       return
     }
 
     // Защита от повторных вызовов - используем ref для синхронной проверки
     if (isGeneratingRef.current || hasGeneratedRef.current) {
-      console.log('Генерация уже выполняется или уже выполнена, пропускаем', { 
-        isGenerating: isGeneratingRef.current, 
-        hasGenerated: hasGeneratedRef.current 
-      })
       return
     }
 
-    console.log('Начинаем генерацию слайдов...')
     isGeneratingRef.current = true
     hasGeneratedRef.current = true
     setIsGenerating(true)
@@ -74,12 +56,9 @@ export default function EditorPage() {
       if (aiSettingsStr) {
         try {
           settings = JSON.parse(aiSettingsStr)
-          console.log('Настройки AI загружены:', settings)
         } catch (e) {
-          console.warn('Ошибка парсинга настроек AI:', e)
+          // Используем значения по умолчанию при ошибке парсинга
         }
-      } else {
-        console.log('Настройки AI не найдены, используются значения по умолчанию')
       }
 
       // Подготавливаем данные для API с учетом всех настроек
@@ -92,8 +71,6 @@ export default function EditorPage() {
         language: settings.language || 'russian',
         audience: settings.audience || '',
       }
-
-      console.log('Генерация слайдов с параметрами:', generationOptions)
 
       // CORS / client-side: AI-API вызываем только через свой Next.js route, не напрямую из браузера
       const response = await fetch('/api/ai/generate', {
@@ -129,14 +106,12 @@ export default function EditorPage() {
       }
 
       const data = await response.json()
-      console.log('Ответ от API:', data)
 
       if (!data.slides || !Array.isArray(data.slides) || data.slides.length === 0) {
         throw new Error('API вернул пустой массив слайдов или некорректный формат')
       }
 
       const generatedSlides = data.slides
-      console.log('Сгенерировано слайдов:', generatedSlides.length)
 
       // Ждём немного, чтобы убедиться что презентация создана
       await new Promise(resolve => setTimeout(resolve, 200))
@@ -147,7 +122,6 @@ export default function EditorPage() {
       
       // Если презентации ещё нет, ждём ещё
       if (!pres) {
-        console.warn('Презентация не найдена, ждём...')
         await new Promise(resolve => setTimeout(resolve, 300))
         pres = usePresentationStore.getState().currentPresentation
       }
@@ -156,21 +130,16 @@ export default function EditorPage() {
         throw new Error('Презентация не создана')
       }
 
-      console.log('Текущая презентация:', pres.id, 'Слайдов:', pres.slides.length)
-
       // Удаляем дефолтный слайд
       if (pres.slides.length > 0) {
-        console.log('Удаляем дефолтный слайд:', pres.slides[0].id)
         store.deleteSlide(pres.slides[0].id)
       }
 
       // Добавляем сгенерированные слайды
-      console.log('Добавляем сгенерированные слайды...')
       for (const slideData of generatedSlides) {
         // Обрабатываем контент - может быть строкой или HTML
         let content = ''
         if (slideData.content) {
-          // Если контент уже HTML, используем как есть, иначе оборачиваем в параграф
           content = slideData.content.includes('<') 
             ? slideData.content 
             : `<p>${slideData.content}</p>`
@@ -180,8 +149,8 @@ export default function EditorPage() {
           type: slideData.type || 'content',
           title: slideData.title || 'Новый слайд',
           content: content,
+          ...(slideData.imageDescription && { imagePrompt: slideData.imageDescription }),
         })
-        console.log('Добавлен слайд:', slideData.title)
       }
 
       // Выбираем первый слайд
@@ -212,44 +181,27 @@ export default function EditorPage() {
   }, [])
 
   useEffect(() => {
-    console.log('Editor useEffect triggered:', {
-      currentPresentation: currentPresentation?.id,
-      isGenerating: isGeneratingRef.current,
-      hasGenerated: hasGeneratedRef.current,
-      slidesCount: currentPresentation?.slides.length
-    })
-
     const prompt = localStorage.getItem('prompt')
     const aiSettings = localStorage.getItem('ai-settings')
     const shouldGenerate = localStorage.getItem('should-generate') === 'true'
 
     // Если установлен флаг should-generate, создаём новую презентацию
     if (shouldGenerate && prompt && !isGeneratingRef.current && !hasGeneratedRef.current) {
-      console.log('Флаг should-generate установлен. Создаём новую презентацию.')
-      localStorage.removeItem('should-generate') // Удаляем флаг
+      localStorage.removeItem('should-generate')
       
-      // Если есть старая презентация, удаляем её
       if (currentPresentation) {
-        console.log('Удаляем старую презентацию:', currentPresentation.id)
         const store = usePresentationStore.getState()
         store.deletePresentation(currentPresentation.id)
       }
       
-      // Сброс флага генерации при создании новой презентации
       hasGeneratedRef.current = false
       setHasGenerated(false)
       
-      // Создаём презентацию с названием из промпта (первые 50 символов)
       const title = prompt.length > 50 ? prompt.substring(0, 50) + '...' : prompt
-      console.log('Создаём презентацию с названием:', title)
       
-      // Ждём немного, чтобы состояние обновилось после удаления
       setTimeout(() => {
         createPresentation(title)
-        
-        // Ждём ещё немного, чтобы презентация создалась, затем генерируем слайды
         setTimeout(() => {
-          console.log('Вызываем generateSlidesFromPrompt')
           generateSlidesFromPrompt(prompt, aiSettings)
         }, 100)
       }, 50)
@@ -258,23 +210,15 @@ export default function EditorPage() {
 
     // Если нет презентации, создаём новую и генерируем слайды через AI
     if (!currentPresentation && !isGeneratingRef.current) {
-      console.log('Создание презентации. Промпт:', prompt, 'Настройки:', aiSettings)
-      
       if (!prompt) {
-        console.log('Промпт не найден, создаём пустую презентацию')
-        // Если нет промпта, просто создаём пустую презентацию
         createPresentation('Презентация без названия')
         return
       }
       
-      // Создаём презентацию с названием из промпта (первые 50 символов)
       const title = prompt.length > 50 ? prompt.substring(0, 50) + '...' : prompt
-      console.log('Создаём презентацию с названием:', title)
       createPresentation(title)
       
-      // Ждём немного, чтобы презентация создалась, затем генерируем слайды
       setTimeout(() => {
-        console.log('Вызываем generateSlidesFromPrompt')
         generateSlidesFromPrompt(prompt, aiSettings)
       }, 100)
       return
@@ -285,15 +229,7 @@ export default function EditorPage() {
       const hasOnlyDefaultSlide = currentPresentation.slides.length === 1 && 
         (currentPresentation.slides[0].title === 'Новый слайд' || currentPresentation.slides[0].content === '')
       
-      console.log('Проверка презентации:', {
-        slidesCount: currentPresentation.slides.length,
-        firstSlideTitle: currentPresentation.slides[0]?.title,
-        firstSlideContent: currentPresentation.slides[0]?.content,
-        hasOnlyDefaultSlide
-      })
-      
       if (hasOnlyDefaultSlide) {
-        console.log('Презентация существует, но пустая. Генерируем слайды из промпта:', prompt)
         setTimeout(() => {
           generateSlidesFromPrompt(prompt, aiSettings)
         }, 100)
@@ -302,7 +238,6 @@ export default function EditorPage() {
     }
 
     if (currentPresentation && currentPresentation.slides.length > 0 && !currentSlideId) {
-      console.log('Выбираем первый слайд:', currentPresentation.slides[0].id)
       setCurrentSlideId(currentPresentation.slides[0].id)
     }
   }, [currentPresentation, currentSlideId, createPresentation, generateSlidesFromPrompt])
@@ -310,45 +245,6 @@ export default function EditorPage() {
   const currentSlide = currentPresentation?.slides.find(
     (s) => s.id === currentSlideId
   )
-
-  const handleExportPDF = async () => {
-    if (!currentPresentation) return
-
-    setIsExporting(true)
-    try {
-      const pdf = new jsPDF({
-        orientation: 'landscape',
-        unit: 'px',
-        format: [1920, 1080],
-      })
-
-      for (let i = 0; i < currentPresentation.slides.length; i++) {
-        const slide = currentPresentation.slides[i]
-        const slideElement = document.getElementById(`slide-${slide.id}`)
-
-        if (slideElement) {
-          const canvas = await html2canvas(slideElement, {
-            width: 1920,
-            height: 1080,
-            scale: 1,
-          })
-
-          const imgData = canvas.toDataURL('image/png')
-
-          if (i > 0) pdf.addPage()
-          pdf.addImage(imgData, 'PNG', 0, 0, 1920, 1080)
-        }
-      }
-
-      pdf.save(`${currentPresentation.title || 'презентация'}.pdf`)
-    } catch (error) {
-      console.error('Export error:', error)
-      alert('Не удалось экспортировать PDF')
-    } finally {
-      setIsExporting(false)
-    }
-  }
-
 
   if (!currentPresentation) {
     return null

@@ -7,10 +7,8 @@ import http from 'http'
 export const runtime = 'nodejs'
 
 // Отключаем проверку SSL сертификатов для GigaChat API (если есть проблемы с сертификатами)
-// Это нужно для работы с GigaChat API, у которого могут быть проблемы с сертификатами
 if (process.env.GIGACHAT_DISABLE_SSL_CHECK === 'true' || process.env.VERCEL === '1') {
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
-  console.log('Проверка SSL сертификатов отключена для GigaChat API')
 }
 
 // ——— Эндпоинты GigaChat API (официальная документация: https://developers.sber.ru/docs/ru/gigachat/api/reference/rest/gigachat-api) ———
@@ -92,23 +90,11 @@ function createFetchWithProxy() {
   const httpsProxy = process.env.HTTPS_PROXY || process.env.HTTP_PROXY
   const httpProxy = process.env.HTTP_PROXY
 
-  if (httpsProxy || httpProxy) {
-    console.log('Обнаружен прокси:', {
-      httpsProxy: httpsProxy ? 'настроен' : 'не настроен',
-      httpProxy: httpProxy ? 'настроен' : 'не настроен',
-    })
-  }
-
   // Используем альтернативный способ если установлена переменная или на Vercel
   // На Vercel также автоматически отключаем проверку SSL (у GigaChat проблемы с сертификатами)
   const useHttpsRequest = process.env.GIGACHAT_USE_HTTPS_REQUEST === 'true' || process.env.VERCEL === '1'
-  const disableSSL = process.env.GIGACHAT_DISABLE_SSL_CHECK === 'true' || process.env.VERCEL === '1'
 
   if (useHttpsRequest) {
-    console.log('Используется альтернативный способ запроса через https.request', {
-      disableSSL,
-      isVercel: process.env.VERCEL === '1',
-    })
     return fetchViaHttpsRequest as typeof fetch
   }
 
@@ -161,31 +147,11 @@ async function getGigaChatAccessToken(): Promise<string> {
   //   --data-urlencode 'scope=GIGACHAT_API_PERS'
   const authHeader = `Basic ${authKey}`
 
-  console.log('Получение токена доступа GigaChat:', {
-    url: GIGACHAT_OAUTH_URL,
-    scope,
-    rqUID,
-    hasAuthKey: !!authKey,
-    authKeyLength: authKey.length,
-    authKeyPreview: authKey.substring(0, 10) + '...',
-  })
-
   try {
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 30000)
 
     const fetchFn = createFetchWithProxy()
-    
-    console.log('Отправка запроса токена:', {
-      url: GIGACHAT_OAUTH_URL,
-      method: 'POST',
-      hasAuthKey: !!authKey,
-      scope,
-      rqUID,
-      nodeEnv: process.env.NODE_ENV,
-      hasProxy: !!(process.env.HTTPS_PROXY || process.env.HTTP_PROXY),
-      disableSSL: process.env.GIGACHAT_DISABLE_SSL_CHECK === 'true',
-    })
     
     const tokenResponse = await fetchFn(GIGACHAT_OAUTH_URL, {
       method: 'POST',
@@ -275,9 +241,6 @@ async function getGigaChatAccessToken(): Promise<string> {
       expiresAt,
     }
 
-    console.log('Токен доступа GigaChat получен успешно', {
-      expiresAt: new Date(expiresAt).toISOString(),
-    })
 
     return accessToken
   } catch (error) {
@@ -289,11 +252,6 @@ async function getGigaChatAccessToken(): Promise<string> {
 export async function POST(request: NextRequest) {
   try {
     const authKey = process.env.GIGACHAT_AUTH_KEY
-    console.log('Проверка ключа авторизации GigaChat:', {
-      exists: !!authKey,
-      length: authKey?.length || 0,
-    })
-    
     if (!authKey) {
       return NextResponse.json(
         { error: 'GIGACHAT_AUTH_KEY не настроен. Установите ваш ключ авторизации в файле .env и перезапустите сервер.' },
@@ -312,7 +270,6 @@ export async function POST(request: NextRequest) {
         )
       }
       options = body as AIGenerationOptions
-      console.log('Получены параметры генерации:', options)
     } catch (parseError) {
       console.error('Ошибка парсинга тела запроса:', parseError)
       const errorMessage = parseError instanceof Error ? parseError.message : String(parseError)
@@ -347,7 +304,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log('Генерация слайдов (GigaChat):', { topic, slidesCount, style, includeImages, imageType, language, audience })
 
     // Формируем детальный промпт с учетом всех настроек
     let prompt = `Создай структуру презентации на тему: "${topic}"`
@@ -364,15 +320,15 @@ export async function POST(request: NextRequest) {
       prompt += `\nТип изображений: ${imageType}`
     }
 
-    prompt += `\n\nДля каждого слайда укажи:
-1. Тип слайда (title, content, image, или split)
-2. Заголовок
-3. Содержание (если применимо)
-${includeImages && imageType !== 'none' ? '4. Краткое описание изображения' : ''}
+    prompt += `\n\nДля каждого слайда верни объект с полями:
+- type: "title" | "content" | "image" | "split"
+- title: заголовок слайда
+- content: текст слайда (если применимо)
+${includeImages && imageType !== 'none' ? '- imageDescription: краткое описание картинки для слайда на английском (1 фраза, для генерации изображения)' : ''}
 
-Верни ТОЛЬКО валидный JSON массив без markdown форматирования, БЕЗ пояснений и текста вокруг, только чистый JSON-массив.
+Верни ТОЛЬКО валидный JSON массив объектов без markdown, без пояснений. Пример элемента: {"type":"content","title":"...","content":"..."${includeImages && imageType !== 'none' ? ',"imageDescription":"..."' : ''}}.
 
-Важно: весь ответ должен быть на языке ${language}.`
+Важно: текст заголовков и content — на языке ${language}.`
 
     const accessToken = await getGigaChatAccessToken()
 
@@ -397,11 +353,6 @@ ${includeImages && imageType !== 'none' ? '4. Краткое описание и
 
     const gigachatApiUrl = `${GIGACHAT_CHAT_BASE_URL}${GIGACHAT_CHAT_COMPLETIONS_PATH}`
 
-    console.log('Запрос к GigaChat API:', {
-      url: gigachatApiUrl,
-      model: requestBody.model,
-      messagesCount: requestBody.messages.length,
-    })
     
     // Используем AbortController для таймаута запроса (60 секунд для генерации)
     const controller = new AbortController()
@@ -535,18 +486,27 @@ ${includeImages && imageType !== 'none' ? '4. Краткое описание и
     }
 
     // Валидируем и нормализуем слайды
-    const normalizedSlides = Array.isArray(slides) ? slides.map((slide: any) => ({
-      type: slide.type || 'content',
-      title: slide.title || 'Новый слайд',
-      content: slide.content || '',
-      imageDescription: slide.imageDescription || slide.imagePrompt || '',
-    })) : []
+    const stripHtml = (s: string) => (s || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
+    const normalizedSlides = Array.isArray(slides) ? slides.map((slide: any) => {
+      const title = slide.title || 'Новый слайд'
+      const content = slide.content || ''
+      const fromAi = slide.imageDescription || slide.imagePrompt || slide.image_description || ''
+      // Если ИИ не вернул описание картинки, но изображения включены — формируем из заголовка и текста (Replicate лучше на английском)
+      const imageDescription = fromAi.trim() || (includeImages && imageType !== 'none'
+        ? `${title}. ${stripHtml(content).slice(0, 120)}`
+        : '')
+      return {
+        type: slide.type || 'content',
+        title,
+        content,
+        imageDescription,
+      }
+    }) : []
 
     if (normalizedSlides.length === 0) {
       throw new Error('AI не сгенерировал ни одного слайда')
     }
 
-    console.log(`Успешно сгенерировано ${normalizedSlides.length} слайдов`)
     return NextResponse.json({ slides: normalizedSlides })
   } catch (error) {
     console.error('AI generation error:', error)

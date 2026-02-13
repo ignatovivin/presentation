@@ -17,7 +17,11 @@ interface SlideEditorProps {
 }
 
 export function SlideEditor({ slide, onUpdate, onDelete }: SlideEditorProps) {
-  const [imagePrompt, setImagePrompt] = useState<string | null>(null)
+  /** Ручной ввод промпта для генерации изображения (если не задан от ИИ) */
+  const [manualImagePrompt, setManualImagePrompt] = useState<string | null>(null)
+  const [showAddImageInput, setShowAddImageInput] = useState(false)
+  const [addImageInputValue, setAddImageInputValue] = useState('')
+  const descriptionToGenerate = slide.imagePrompt || manualImagePrompt
 
   const editor = useEditor({
     extensions: [
@@ -55,14 +59,17 @@ export function SlideEditor({ slide, onUpdate, onDelete }: SlideEditorProps) {
           />
           
           <div className="flex-1 w-full mt-8">
-            {imagePrompt && (
+            {descriptionToGenerate && (
               <ImageGenerator
-                description={imagePrompt}
+                description={descriptionToGenerate}
                 onImageGenerated={(imageUrl) => {
-                  onUpdate({ imageUrl })
-                  setImagePrompt(null)
+                  onUpdate({ imageUrl, imagePrompt: undefined })
+                  setManualImagePrompt(null)
                 }}
-                onCancel={() => setImagePrompt(null)}
+                onCancel={() => {
+                  setManualImagePrompt(null)
+                  if (slide.imagePrompt) onUpdate({ imagePrompt: undefined })
+                }}
               />
             )}
 
@@ -73,6 +80,56 @@ export function SlideEditor({ slide, onUpdate, onDelete }: SlideEditorProps) {
                   alt={slide.title || 'Slide image'}
                   className="w-full max-h-96 object-contain rounded-lg"
                 />
+              </div>
+            )}
+
+            {!descriptionToGenerate && !slide.imageUrl && (
+              <div className="mb-4 flex items-center gap-2 flex-wrap justify-center">
+                {!showAddImageInput ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="text-sm"
+                    onClick={() => setShowAddImageInput(true)}
+                  >
+                    <ImageIcon className="h-4 w-4 mr-1" />
+                    Сгенерировать изображение
+                  </Button>
+                ) : (
+                  <>
+                    <Input
+                      placeholder="Опишите изображение для слайда..."
+                      value={addImageInputValue}
+                      onChange={(e) => setAddImageInputValue(e.target.value)}
+                      className="max-w-xs"
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => {
+                        if (addImageInputValue.trim()) {
+                          setManualImagePrompt(addImageInputValue.trim())
+                          setAddImageInputValue('')
+                          setShowAddImageInput(false)
+                        }
+                      }}
+                    >
+                      Генерировать
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setShowAddImageInput(false)
+                        setAddImageInputValue('')
+                      }}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </>
+                )}
               </div>
             )}
 

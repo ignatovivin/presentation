@@ -16,7 +16,7 @@ yarn install
    - Copy `.env.example` to `.env`
    - Add your API keys:
      - `GIGACHAT_AUTH_KEY`, `GIGACHAT_SCOPE`: см. [GIGACHAT_SETUP.md](./GIGACHAT_SETUP.md)
-     - `REPLICATE_API_TOKEN`: Get token from [Replicate](https://replicate.com/account/api-tokens)
+     - `REPLICATE_API_TOKEN`: для генерации картинок к слайдам (Replicate, FLUX). Без него кнопка «Сгенерировать изображение» будет возвращать ошибку. Токен: [Replicate](https://replicate.com/account/api-tokens)
 
 3. **Run development server:**
 ```bash
