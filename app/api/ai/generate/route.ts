@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import type { AIGenerationOptions } from '@/lib/types'
 import { randomUUID } from 'crypto'
+import https from 'https'
+import http from 'http'
 
 export const runtime = 'nodejs'
 
@@ -16,22 +18,32 @@ const GIGACHAT_MODEL = process.env.GIGACHAT_MODEL ?? 'GigaChat-2-Pro'
 
 /**
  * Создает fetch с поддержкой прокси из переменных окружения
- * Node.js 18+ автоматически использует HTTP_PROXY и HTTPS_PROXY из process.env
+ * и кастомным HTTPS agent с отключенной проверкой SSL сертификатов
  */
 function createFetchWithProxy() {
   const httpsProxy = process.env.HTTPS_PROXY || process.env.HTTP_PROXY
   const httpProxy = process.env.HTTP_PROXY
-  
+
   if (httpsProxy || httpProxy) {
     console.log('Обнаружен прокси:', {
       httpsProxy: httpsProxy ? 'настроен' : 'не настроен',
       httpProxy: httpProxy ? 'настроен' : 'не настроен',
     })
   }
-  
-  // В Node.js 18+ fetch автоматически использует HTTP_PROXY и HTTPS_PROXY
-  // Если нужна явная поддержка прокси, можно использовать https-proxy-agent
-  return fetch
+
+  // 🔥 СОЗДАЁМ CUSTOM AGENT с отключенной проверкой SSL
+  const httpsAgent = new https.Agent({
+    rejectUnauthorized: false, // Игнорируем ошибки сертификатов
+  })
+
+  // 🔥 ВОЗВРАЩАЕМ ОБЁРТКУ НАД FETCH
+  return async (url: string, options: any = {}) => {
+    return fetch(url, {
+      ...options,
+      // @ts-ignore - Node.js поддерживает agent в fetch
+      agent: url.startsWith('https') ? httpsAgent : undefined,
+    })
+  }
 }
 
 // Кэш для токена доступа GigaChat (действителен 30 минут)
@@ -68,7 +80,14 @@ async function getGigaChatAccessToken(): Promise<string> {
   }
 
   const rqUID = randomUUID()
-  // По документации: заголовок Authorization: Basic <ключ_авторизации>, ключ = Base64(Client ID:Client Secret)
+  // Basic-схема: в Authorization передаём полученный Authorization key (из ЛК), без дополнительного кодирования.
+  // Пример из документации:
+  //   curl -L -X POST 'https://ngw.devices.sberbank.ru:9443/api/v2/oauth' \
+  //   -H 'Content-Type: application/x-www-form-urlencoded' \
+  //   -H 'Accept: application/json' \
+  //   -H 'RqUID: <uuid>' \
+  //   -H 'Authorization: Basic <Authorization key>' \
+  //   --data-urlencode 'scope=GIGACHAT_API_PERS'
   const authHeader = `Basic ${authKey}`
 
   console.log('Получение токена доступа GigaChat:', {
