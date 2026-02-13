@@ -7,8 +7,10 @@ import http from 'http'
 export const runtime = 'nodejs'
 
 // Отключаем проверку SSL сертификатов для GigaChat API (если есть проблемы с сертификатами)
-if (process.env.GIGACHAT_DISABLE_SSL_CHECK === 'true') {
+// Это нужно для работы с GigaChat API, у которого могут быть проблемы с сертификатами
+if (process.env.GIGACHAT_DISABLE_SSL_CHECK === 'true' || process.env.VERCEL === '1') {
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
+  console.log('Проверка SSL сертификатов отключена для GigaChat API')
 }
 
 // ——— Эндпоинты GigaChat API (официальная документация: https://developers.sber.ru/docs/ru/gigachat/api/reference/rest/gigachat-api) ———
@@ -38,13 +40,16 @@ async function fetchViaHttpsRequest(
     const isHttps = urlObj.protocol === 'https:'
     const client = isHttps ? https : http
 
+    // Отключаем проверку SSL для GigaChat API (у них могут быть проблемы с сертификатами)
+    const disableSSL = process.env.GIGACHAT_DISABLE_SSL_CHECK === 'true' || process.env.VERCEL === '1'
+    
     const requestOptions: https.RequestOptions = {
       hostname: urlObj.hostname,
       port: urlObj.port ? parseInt(urlObj.port, 10) : (isHttps ? 443 : 80),
       path: urlObj.pathname + urlObj.search,
       method: options.method || 'GET',
       headers: options.headers || {},
-      rejectUnauthorized: process.env.GIGACHAT_DISABLE_SSL_CHECK !== 'true',
+      rejectUnauthorized: !disableSSL, // Отключаем проверку SSL если нужно
     }
 
     const req = client.request(requestOptions, (res) => {
@@ -95,10 +100,15 @@ function createFetchWithProxy() {
   }
 
   // Используем альтернативный способ если установлена переменная или на Vercel
+  // На Vercel также автоматически отключаем проверку SSL (у GigaChat проблемы с сертификатами)
   const useHttpsRequest = process.env.GIGACHAT_USE_HTTPS_REQUEST === 'true' || process.env.VERCEL === '1'
+  const disableSSL = process.env.GIGACHAT_DISABLE_SSL_CHECK === 'true' || process.env.VERCEL === '1'
 
   if (useHttpsRequest) {
-    console.log('Используется альтернативный способ запроса через https.request')
+    console.log('Используется альтернативный способ запроса через https.request', {
+      disableSSL,
+      isVercel: process.env.VERCEL === '1',
+    })
     return fetchViaHttpsRequest as typeof fetch
   }
 
