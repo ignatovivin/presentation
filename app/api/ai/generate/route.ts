@@ -4,6 +4,16 @@ import { randomUUID } from 'crypto'
 
 export const runtime = 'nodejs'
 
+// ——— Эндпоинты GigaChat API (официальная документация: https://developers.sber.ru/docs/ru/gigachat/api/reference/rest/gigachat-api) ———
+// Токен: POST с заголовком Authorization: Basic <Base64(Client ID:Client Secret)>, тело scope=GIGACHAT_API_PERS|B2B|CORP
+const GIGACHAT_OAUTH_URL = process.env.GIGACHAT_OAUTH_URL ?? 'https://ngw.devices.sberbank.ru:9443/api/v2/oauth'
+// Чат: запросы с заголовком Authorization: Bearer <access_token>
+const GIGACHAT_CHAT_BASE_URL = (process.env.GIGACHAT_CHAT_BASE_URL ?? 'https://gigachat.devices.sberbank.ru').replace(/\/+$/, '')
+const GIGACHAT_CHAT_COMPLETIONS_PATH = '/api/v1/chat/completions'
+// Модели для генерации (список: https://developers.sber.ru/docs/ru/gigachat/models/main). 404 = неверный идентификатор.
+const GIGACHAT_ALLOWED_MODELS = ['GigaChat-2', 'GigaChat-2-Lite', 'GigaChat-2-Pro', 'GigaChat-2-Max'] as const
+const GIGACHAT_MODEL = process.env.GIGACHAT_MODEL ?? 'GigaChat-2-Pro'
+
 /**
  * Создает fetch с поддержкой прокси из переменных окружения
  * Node.js 18+ автоматически использует HTTP_PROXY и HTTPS_PROXY из process.env
@@ -52,30 +62,31 @@ async function getGigaChatAccessToken(): Promise<string> {
     console.warn('Предупреждение: ключ авторизации содержит недопустимые символы для Base64')
   }
 
-  const tokenUrl = 'https://ngw.devices.sberbank.ru:9443/api/v2/oauth'
   const rqUID = randomUUID()
+  // По документации: заголовок Authorization: Basic <ключ_авторизации>, ключ = Base64(Client ID:Client Secret)
+  const authHeader = `Basic ${authKey}`
 
   console.log('Получение токена доступа GigaChat:', {
+    url: GIGACHAT_OAUTH_URL,
     scope,
     rqUID,
     hasAuthKey: !!authKey,
     authKeyLength: authKey.length,
-    authKeyPreview: authKey.substring(0, 10) + '...', // Первые 10 символов для отладки
+    authKeyPreview: authKey.substring(0, 10) + '...',
   })
 
   try {
-    // Используем AbortController для таймаута запроса (30 секунд)
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 30000)
 
     const fetchFn = createFetchWithProxy()
-    const tokenResponse = await fetchFn(tokenUrl, {
+    const tokenResponse = await fetchFn(GIGACHAT_OAUTH_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
         'Accept': 'application/json',
         'RqUID': rqUID,
-        'Authorization': `Basic ${authKey}`, // Ключ уже должен быть в формате Base64(Client ID:Client Secret)
+        'Authorization': authHeader,
       },
       body: new URLSearchParams({ scope }),
       signal: controller.signal,
@@ -86,7 +97,7 @@ async function getGigaChatAccessToken(): Promise<string> {
       
       console.error('Ошибка сети при запросе токена:', {
         error: errorMessage,
-        url: tokenUrl,
+        url: GIGACHAT_OAUTH_URL,
         isTimeout: isAborted,
         cause: fetchError instanceof Error ? fetchError.cause : undefined,
       })
@@ -112,7 +123,7 @@ async function getGigaChatAccessToken(): Promise<string> {
         status: tokenResponse.status,
         statusText: tokenResponse.statusText,
         errorText: errorText.substring(0, 500),
-        url: tokenUrl,
+        url: GIGACHAT_OAUTH_URL,
         scope,
         authKeyLength: authKey.length,
         // Не логируем сам ключ из соображений безопасности
@@ -253,39 +264,40 @@ ${includeImages && imageType !== 'none' ? '4. Краткое описание и
 
 Важно: весь ответ должен быть на языке ${language}.`
 
-    // Получаем токен доступа GigaChat
     const accessToken = await getGigaChatAccessToken()
 
-    // Вызов GigaChat API
-    const gigachatApiUrl = 'https://gigachat.devices.sberbank.ru/api/v1/chat/completions'
-    
+    // Модель обязательно должна существовать в API (404 при неверном идентификаторе)
+    const modelToUse = GIGACHAT_ALLOWED_MODELS.includes(GIGACHAT_MODEL as (typeof GIGACHAT_ALLOWED_MODELS)[number])
+      ? GIGACHAT_MODEL
+      : 'GigaChat-2-Pro'
+    if (modelToUse !== GIGACHAT_MODEL) {
+      console.warn('GigaChat: неверный идентификатор модели, используем GigaChat-2-Pro. Разрешённые:', GIGACHAT_ALLOWED_MODELS.join(', '))
+    }
+
+    // Тело запроса строго по спецификации: model + messages (role, content — только строка UTF-8)
     const requestBody = {
-      // Явно используем модель GigaChat-2-Pro (см. docs: selecting-a-model)
-      model: 'GigaChat-2-Pro',
+      model: modelToUse,
       messages: [
-        {
-          role: 'system',
-          content:
-            'Ты помощник, который генерирует структуру презентаций. Всегда отвечай ТОЛЬКО в формате валидного JSON-массива с описанием слайдов, без пояснений и без markdown.',
-        },
-        {
-          role: 'user',
-          content: prompt,
-        },
+        { role: 'system', content: 'Ты помощник, который генерирует структуру презентаций. Всегда отвечай ТОЛЬКО в формате валидного JSON-массива с описанием слайдов, без пояснений и без markdown.' },
+        { role: 'user', content: prompt },
       ],
       temperature: 0.7,
       stream: false,
     }
-    
-    console.log('Запрос к GigaChat API:', { 
+
+    const gigachatApiUrl = `${GIGACHAT_CHAT_BASE_URL}${GIGACHAT_CHAT_COMPLETIONS_PATH}`
+
+    console.log('Запрос к GigaChat API:', {
       url: gigachatApiUrl,
       model: requestBody.model,
+      messagesCount: requestBody.messages.length,
     })
     
     // Используем AbortController для таймаута запроса (60 секунд для генерации)
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 60000)
 
+    // По документации: заголовок Authorization: Bearer <токен_доступа>
     const fetchFn = createFetchWithProxy()
     const gigachatResponse = await fetchFn(gigachatApiUrl, {
       method: 'POST',

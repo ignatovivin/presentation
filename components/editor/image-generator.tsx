@@ -24,6 +24,7 @@ export function ImageGenerator({
         setIsGenerating(true)
         setError(null)
 
+        // CORS / client-side: внешние API только через Next.js route, не из браузера
         const response = await fetch('/api/images/generate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

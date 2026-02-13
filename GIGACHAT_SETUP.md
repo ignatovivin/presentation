@@ -41,14 +41,24 @@ yarn dev
 3. При истечении токена он автоматически обновляется
 4. Все запросы к API используют токен доступа в заголовке `Authorization: Bearer <token>`
 
-## Эндпоинты
+## Эндпоинты и заголовки (сверено с документацией Сбера)
 
-- **Получение токена:** `https://ngw.devices.sberbank.ru:9443/api/v2/oauth`
-- **Генерация чата:** `https://gigachat.devices.sberbank.ru/api/v1/chat/completions`
+- **Получение токена:** `POST https://ngw.devices.sberbank.ru:9443/api/v2/oauth`
+  - Заголовки: `Content-Type: application/x-www-form-urlencoded`, `Accept: application/json`, `RqUID: <uuid4>`, **`Authorization: Basic <ключ_авторизации>`** (ключ = Base64(Client ID:Client Secret))
+  - Тело: `scope=GIGACHAT_API_PERS` (или `GIGACHAT_API_B2B`, `GIGACHAT_API_CORP`)
+- **Генерация чата:** `POST https://gigachat.devices.sberbank.ru/api/v1/chat/completions`
+  - Заголовки: `Content-Type: application/json`, `Accept: application/json`, **`Authorization: Bearer <access_token>`**
 
-## Модель
+Если у вас «Неверный endpoint» или «Неправильный заголовок авторизации», проверьте:
+1. Для токена — именно **Basic** и ключ в Base64, без лишних пробелов.
+2. Для чата — именно **Bearer** и токен, полученный с эндпоинта `/api/v2/oauth`.
+3. URL без опечаток: токен — `ngw.devices.sberbank.ru:9443`, чат — `gigachat.devices.sberbank.ru` (без порта).
 
-По умолчанию используется модель `GigaChat`. Вы можете изменить её в файле `app/api/ai/generate/route.ts`.
+## Модель и тело запроса
+
+- **Модель** обязательно должна существовать в API (неверный идентификатор → 404). Разрешённые значения: `GigaChat-2`, `GigaChat-2-Lite`, `GigaChat-2-Pro`, `GigaChat-2-Max`. По умолчанию: `GigaChat-2-Pro`. В `.env`: `GIGACHAT_MODEL=GigaChat-2-Pro`.
+- **Формат сообщений** строго по спецификации: массив объектов `{ role, content }`, где `role` — `system` или `user`, `content` — строка (UTF-8). Лишние поля в теле запроса не передаём.
+- Другие опции: `GIGACHAT_OAUTH_URL`, `GIGACHAT_CHAT_BASE_URL` — только если используете другой контур/регион.
 
 ## Поддержка прокси
 

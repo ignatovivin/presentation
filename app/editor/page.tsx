@@ -95,7 +95,7 @@ export default function EditorPage() {
 
       console.log('Генерация слайдов с параметрами:', generationOptions)
 
-      // Вызываем API для генерации слайдов
+      // CORS / client-side: AI-API вызываем только через свой Next.js route, не напрямую из браузера
       const response = await fetch('/api/ai/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

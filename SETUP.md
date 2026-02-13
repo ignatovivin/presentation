@@ -13,9 +13,9 @@ yarn install
 ```
 
 2. **Set up environment variables:**
-   - Copy `.env.example` to `.env.local`
+   - Copy `.env.example` to `.env`
    - Add your API keys:
-     - `GEMINI_API_KEY`: Get free API key from [Google AI Studio](https://makersuite.google.com/app/apikey)
+     - `GIGACHAT_AUTH_KEY`, `GIGACHAT_SCOPE`: см. [GIGACHAT_SETUP.md](./GIGACHAT_SETUP.md)
      - `REPLICATE_API_TOKEN`: Get token from [Replicate](https://replicate.com/account/api-tokens)
 
 3. **Run development server:**
@@ -28,22 +28,34 @@ yarn dev
 
 ## Features
 
-- ✅ AI-powered content generation with Google Gemini
-- ✅ Image generation with FLUX.1-schnell via Replicate
+- ✅ AI-powered content generation (GigaChat API через Next.js route)
+- ✅ Image generation with FLUX.1-schnell via Replicate (через Next.js route)
 - ✅ Rich text editing with TipTap
 - ✅ Drag-and-drop slide management
 - ✅ Presentation preview with Reveal.js
 - ✅ PDF export
 - ✅ Auto-save to LocalStorage
 
+## CORS и client-side запросы
+
+**Все вызовы внешних AI-API идут только через наш backend (Next.js API routes).**
+
+- Из браузера (React) нельзя дергать GigaChat, Replicate и т.п. напрямую → будет CORS / 500.
+- Клиент вызывает только свои маршруты:
+  - генерация слайдов: `POST /api/ai/generate`
+  - генерация картинок: `POST /api/images/generate`
+- Внутри этих route уже идёт запрос к внешнему API на сервере (без CORS).
+
+Не добавляйте `fetch` на внешние AI-API в компоненты — только на `/api/*`.
+
 ## Project Structure
 
 ```
 presentation/
 ├── app/
-│   ├── api/              # API routes
-│   │   ├── ai/          # Gemini AI endpoints
-│   │   └── images/      # Replicate image generation
+│   ├── api/              # API routes (все внешние AI-запросы только здесь)
+│   │   ├── ai/           # GigaChat — генерация слайдов
+│   │   └── images/       # Replicate — генерация изображений
 │   ├── editor/          # Main editor page
 │   ├── present/         # Presentation view page
 │   └── page.tsx         # Home page
