@@ -100,11 +100,18 @@ async function getGigaChatAccessToken(): Promise<string> {
     clearTimeout(timeoutId)
 
     if (!tokenResponse.ok) {
-      const errorText = await tokenResponse.text()
+      let errorText = ''
+      try {
+        errorText = await tokenResponse.text()
+      } catch (textError) {
+        console.error('Не удалось прочитать текст ошибки токена:', textError)
+        errorText = `HTTP ${tokenResponse.status} ${tokenResponse.statusText}`
+      }
+      
       console.error('Ошибка получения токена GigaChat:', {
         status: tokenResponse.status,
         statusText: tokenResponse.statusText,
-        errorText,
+        errorText: errorText.substring(0, 500),
         url: tokenUrl,
         scope,
         authKeyLength: authKey.length,
@@ -115,15 +122,29 @@ async function getGigaChatAccessToken(): Promise<string> {
       if (tokenResponse.status === 401) {
         errorMessage = 'Ошибка авторизации. Проверьте правильность ключа авторизации (GIGACHAT_AUTH_KEY). Ключ должен быть в формате Base64(Client ID:Client Secret).'
       } else if (tokenResponse.status === 400) {
-        errorMessage = `Некорректный формат запроса: ${errorText}`
+        errorMessage = `Некорректный формат запроса: ${errorText.substring(0, 200)}`
       } else {
-        errorMessage = `${errorMessage} ${errorText}`
+        errorMessage = `${errorMessage} ${errorText.substring(0, 200)}`
       }
       
       throw new Error(errorMessage)
     }
 
-    const tokenData = await tokenResponse.json()
+    // Безопасный парсинг ответа с токеном
+    let tokenData: any
+    try {
+      const responseText = await tokenResponse.text()
+      try {
+        tokenData = JSON.parse(responseText)
+      } catch (jsonError) {
+        console.error('Ошибка парсинга JSON ответа токена:', jsonError)
+        console.error('Текст ответа:', responseText.substring(0, 500))
+        throw new Error(`Не удалось распарсить JSON ответ токена: ${jsonError instanceof Error ? jsonError.message : String(jsonError)}`)
+      }
+    } catch (error) {
+      console.error('Ошибка чтения ответа токена:', error)
+      throw new Error(`Не удалось прочитать ответ токена: ${error instanceof Error ? error.message : String(error)}`)
+    }
     const accessToken = tokenData.access_token
     const expiresAt = (tokenData.expires_at || Date.now() / 1000 + 1800) * 1000 // 30 минут по умолчанию
 
@@ -159,9 +180,28 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const options: AIGenerationOptions = await request.json()
-    console.log('Получены параметры генерации:', options)
+    // Безопасный парсинг JSON из запроса
+    let options: AIGenerationOptions
+    try {
+      const body = await request.json()
+      if (!body || typeof body !== 'object') {
+        return NextResponse.json(
+          { error: 'Тело запроса должно быть JSON объектом' },
+          { status: 400 }
+        )
+      }
+      options = body as AIGenerationOptions
+      console.log('Получены параметры генерации:', options)
+    } catch (parseError) {
+      console.error('Ошибка парсинга тела запроса:', parseError)
+      const errorMessage = parseError instanceof Error ? parseError.message : String(parseError)
+      return NextResponse.json(
+        { error: `Некорректный формат запроса. Ожидается JSON объект. Детали: ${errorMessage}` },
+        { status: 400 }
+      )
+    }
     
+    // Валидация обязательных полей
     const { 
       topic, 
       slidesCount, 
@@ -172,9 +212,16 @@ export async function POST(request: NextRequest) {
       audience = ''
     } = options
 
-    if (!topic || topic.trim() === '') {
+    if (!topic || typeof topic !== 'string' || topic.trim() === '') {
       return NextResponse.json(
-        { error: 'Topic is required' },
+        { error: 'Поле "topic" обязательно и должно быть непустой строкой' },
+        { status: 400 }
+      )
+    }
+
+    if (slidesCount !== undefined && (typeof slidesCount !== 'number' || slidesCount < 1 || slidesCount > 50)) {
+      return NextResponse.json(
+        { error: 'Поле "slidesCount" должно быть числом от 1 до 50' },
         { status: 400 }
       )
     }
@@ -270,8 +317,19 @@ ${includeImages && imageType !== 'none' ? '4. Краткое описание и
     clearTimeout(timeoutId)
 
     if (!gigachatResponse.ok) {
-      const errorText = await gigachatResponse.text()
-      console.error('GigaChat API error:', gigachatResponse.status, errorText)
+      let errorText = ''
+      try {
+        errorText = await gigachatResponse.text()
+      } catch (textError) {
+        console.error('Не удалось прочитать текст ошибки:', textError)
+        errorText = `HTTP ${gigachatResponse.status} ${gigachatResponse.statusText}`
+      }
+      
+      console.error('GigaChat API error:', {
+        status: gigachatResponse.status,
+        statusText: gigachatResponse.statusText,
+        errorText: errorText.substring(0, 500),
+      })
       
       let errorMessage = 'Ошибка при обращении к GigaChat API'
       if (gigachatResponse.status === 401) {
@@ -285,7 +343,7 @@ ${includeImages && imageType !== 'none' ? '4. Краткое описание и
       } else if (gigachatResponse.status === 429) {
         errorMessage = 'Превышен лимит запросов к GigaChat API. Попробуйте позже.'
       } else {
-        errorMessage = `GigaChat API error: ${gigachatResponse.status} ${errorText}`
+        errorMessage = `GigaChat API error: ${gigachatResponse.status} ${errorText.substring(0, 200)}`
       }
       
       return NextResponse.json(
@@ -294,9 +352,39 @@ ${includeImages && imageType !== 'none' ? '4. Краткое описание и
       )
     }
 
-    const gigachatData: any = await gigachatResponse.json()
+    // Безопасный парсинг ответа от API
+    let gigachatData: any
+    let responseText: string = ''
+    try {
+      // Сначала читаем текст ответа
+      responseText = await gigachatResponse.text()
+      // Затем пытаемся распарсить JSON
+      try {
+        gigachatData = JSON.parse(responseText)
+      } catch (jsonError) {
+        console.error('Ошибка парсинга JSON ответа от GigaChat:', jsonError)
+        console.error('Текст ответа:', responseText.substring(0, 500))
+        throw new Error(`Не удалось распарсить JSON ответ от GigaChat API: ${jsonError instanceof Error ? jsonError.message : String(jsonError)}`)
+      }
+    } catch (error) {
+      // Если не удалось прочитать ответ вообще
+      console.error('Ошибка чтения ответа от GigaChat:', error)
+      throw new Error(`Не удалось прочитать ответ от GigaChat API: ${error instanceof Error ? error.message : String(error)}`)
+    }
+
+    // Проверяем структуру ответа
+    if (!gigachatData || !gigachatData.choices || !Array.isArray(gigachatData.choices) || gigachatData.choices.length === 0) {
+      console.error('Некорректная структура ответа от GigaChat:', JSON.stringify(gigachatData))
+      throw new Error('GigaChat API вернул некорректный формат ответа')
+    }
+
     const text: string =
       gigachatData?.choices?.[0]?.message?.content?.toString() ?? ''
+
+    if (!text || text.trim() === '') {
+      console.error('Пустой ответ от GigaChat API:', JSON.stringify(gigachatData))
+      throw new Error('GigaChat API вернул пустой ответ')
+    }
 
     // Clean up the response (remove markdown code blocks if present)
     let cleanedText = text.trim()
@@ -310,13 +398,18 @@ ${includeImages && imageType !== 'none' ? '4. Краткое описание и
     const jsonMatch = cleanedText.match(/\[[\s\S]*\]/)
     const jsonText = jsonMatch ? jsonMatch[0] : cleanedText
 
+    if (!jsonText || jsonText.trim() === '') {
+      console.error('Не удалось найти JSON в ответе:', cleanedText.substring(0, 500))
+      throw new Error('Ответ от AI не содержит валидный JSON массив')
+    }
+
     let slides
     try {
       slides = JSON.parse(jsonText)
     } catch (parseError) {
       console.error('Ошибка парсинга JSON:', parseError)
       console.error('Текст ответа:', jsonText.substring(0, 500))
-      throw new Error('Не удалось распарсить ответ от AI')
+      throw new Error(`Не удалось распарсить JSON из ответа AI: ${parseError instanceof Error ? parseError.message : String(parseError)}`)
     }
 
     // Валидируем и нормализуем слайды
@@ -336,9 +429,19 @@ ${includeImages && imageType !== 'none' ? '4. Краткое описание и
   } catch (error) {
     console.error('AI generation error:', error)
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-    console.error('Error details:', errorMessage)
+    const errorStack = error instanceof Error ? error.stack : undefined
+    console.error('Error details:', {
+      message: errorMessage,
+      stack: errorStack,
+      name: error instanceof Error ? error.name : undefined,
+    })
+    
+    // Возвращаем более информативный ответ об ошибке
     return NextResponse.json(
-      { error: `Failed to generate presentation: ${errorMessage}` },
+      { 
+        error: `Failed to generate presentation: ${errorMessage}`,
+        details: process.env.NODE_ENV === 'development' ? errorStack : undefined
+      },
       { status: 500 }
     )
   }
