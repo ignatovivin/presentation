@@ -41,6 +41,12 @@ yarn dev
 3. При истечении токена он автоматически обновляется
 4. Все запросы к API используют токен доступа в заголовке `Authorization: Bearer <token>`
 
+## Проверка после смены ключа/scope
+
+- **Ключ:** в `.env` одна строка `GIGACHAT_AUTH_KEY=...` без кавычек и пробелов, значение — Base64(Client ID:Client Secret).
+- **Scope:** один из `GIGACHAT_API_PERS` | `GIGACHAT_API_B2B` | `GIGACHAT_API_CORP`. Для физлиц — `GIGACHAT_API_PERS`.
+- После правок `.env` перезапустите сервер (`yarn dev` или передеплой на Vercel).
+
 ## Эндпоинты и заголовки (сверено с документацией Сбера)
 
 - **Получение токена:** `POST https://ngw.devices.sberbank.ru:9443/api/v2/oauth`

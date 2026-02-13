@@ -48,10 +48,15 @@ async function getGigaChatAccessToken(): Promise<string> {
   }
 
   const authKeyRaw = process.env.GIGACHAT_AUTH_KEY
-  const scope = process.env.GIGACHAT_SCOPE || 'GIGACHAT_API_PERS'
+  const scopeRaw = (process.env.GIGACHAT_SCOPE || 'GIGACHAT_API_PERS').trim()
+  const allowedScopes = ['GIGACHAT_API_PERS', 'GIGACHAT_API_B2B', 'GIGACHAT_API_CORP'] as const
+  const scope = allowedScopes.includes(scopeRaw as (typeof allowedScopes)[number]) ? scopeRaw : 'GIGACHAT_API_PERS'
 
   if (!authKeyRaw) {
     throw new Error('GIGACHAT_AUTH_KEY не настроен. Установите ваш ключ авторизации в файле .env')
+  }
+  if (scope !== scopeRaw) {
+    console.warn('GIGACHAT_SCOPE должен быть один из: GIGACHAT_API_PERS, GIGACHAT_API_B2B, GIGACHAT_API_CORP. Используем GIGACHAT_API_PERS.')
   }
 
   // Убираем пробелы и переносы строк из ключа (на случай если они были добавлены при копировании)
