@@ -30,7 +30,6 @@
     "reveal.js": "^5.0.0",
     "html2canvas": "^1.4.1",
     "jspdf": "^2.5.1",
-    "ai": "^3.4.0",
     "replicate": "^0.34.0",
     "clsx": "^2.1.0",
     "tailwind-merge": "^2.2.0",

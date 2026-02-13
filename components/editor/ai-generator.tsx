@@ -11,12 +11,17 @@ import {
 } from '@/components/ui/select'
 
 interface AIGeneratorProps {
+  // Событие изменения настроек (используется на главной странице)
   onSettingsChange?: (settings: {
     imageType: string
     tone: string
     language: string
     audience: string
   }) => void
+  // Дополнительные пропсы для совместимости с использованием в EditorPage
+  // (управление открытием/закрытием, сейчас внутри компонента не используются)
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
 }
 
 export function AIGenerator({ onSettingsChange }: AIGeneratorProps) {

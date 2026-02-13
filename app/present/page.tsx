@@ -23,6 +23,7 @@ export default function PresentPage() {
     const loadReveal = async () => {
       if (typeof window !== 'undefined' && revealRef.current && !revealInstanceRef.current) {
         const Reveal = (await import('reveal.js')).default
+        // Динамически загружаем CSS файлы reveal.js
         await import('reveal.js/dist/reveal.css')
         await import('reveal.js/dist/theme/white.css')
 
