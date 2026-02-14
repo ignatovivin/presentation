@@ -105,12 +105,12 @@ export default function EditorPage() {
         
         let errorMessage = 'Не удалось сгенерировать слайды'
         if (errorData.error) {
-          if (errorData.error.includes('GIGACHAT_AUTH_KEY не настроен')) {
-            errorMessage = 'Ключ авторизации GigaChat не настроен. Установите ваш ключ в файле .env и перезапустите сервер.'
-          } else if (errorData.error.includes('Ошибка авторизации')) {
-            errorMessage = 'Ошибка авторизации GigaChat. Проверьте правильность ключа авторизации в файле .env'
-          } else if (errorData.error.includes('Неверный API ключ')) {
-            errorMessage = 'Неверный ключ авторизации GigaChat. Проверьте правильность ключа в файле .env'
+          if (errorData.error.includes('GROQ_API_KEY не настроен')) {
+            errorMessage = 'Ключ Groq не настроен. Установите GROQ_API_KEY в .env (или в настройках Vercel) и перезапустите сервер.'
+          } else if (errorData.error.includes('Ошибка авторизации') || errorData.error.includes('401')) {
+            errorMessage = 'Ошибка авторизации Groq. Проверьте правильность GROQ_API_KEY в .env или в настройках Vercel.'
+          } else if (errorData.error.includes('429')) {
+            errorMessage = 'Превышен лимит запросов к Groq. Попробуйте позже.'
           } else {
             errorMessage = errorData.error
           }

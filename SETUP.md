@@ -15,7 +15,7 @@ yarn install
 2. **Set up environment variables:**
    - Copy `.env.example` to `.env`
    - Add your API keys:
-     - `GIGACHAT_AUTH_KEY`, `GIGACHAT_SCOPE`: см. [GIGACHAT_SETUP.md](./GIGACHAT_SETUP.md)
+     - `GROQ_API_KEY`: см. [GROQ_SETUP.md](./GROQ_SETUP.md) (генерация слайдов)
      - `REPLICATE_API_TOKEN`: для генерации картинок к слайдам (Replicate, FLUX). Без него кнопка «Сгенерировать изображение» будет возвращать ошибку. Токен: [Replicate](https://replicate.com/account/api-tokens)
 
 3. **Run development server:**
@@ -28,7 +28,7 @@ yarn dev
 
 ## Features
 
-- ✅ AI-powered content generation (GigaChat API через Next.js route)
+- ✅ AI-powered content generation (Groq API через Next.js route)
 - ✅ Image generation with FLUX.1-schnell via Replicate (через Next.js route)
 - ✅ Rich text editing with TipTap
 - ✅ Drag-and-drop slide management
@@ -40,7 +40,7 @@ yarn dev
 
 **Все вызовы внешних AI-API идут только через наш backend (Next.js API routes).**
 
-- Из браузера (React) нельзя дергать GigaChat, Replicate и т.п. напрямую → будет CORS / 500.
+- Из браузера (React) нельзя дергать Groq, Replicate и т.п. напрямую → будет CORS / 500.
 - Клиент вызывает только свои маршруты:
   - генерация слайдов: `POST /api/ai/generate`
   - генерация картинок: `POST /api/images/generate`
@@ -54,7 +54,7 @@ yarn dev
 presentation/
 ├── app/
 │   ├── api/              # API routes (все внешние AI-запросы только здесь)
-│   │   ├── ai/           # GigaChat — генерация слайдов
+│   │   ├── ai/           # Groq — генерация слайдов
 │   │   └── images/       # Replicate — генерация изображений
 │   ├── editor/          # Main editor page
 │   ├── present/         # Presentation view page

@@ -9,91 +9,80 @@
 
 ## Шаг 2: Настройка переменных окружения на Vercel
 
-После подключения репозитория к Vercel, добавьте следующие переменные окружения в настройках проекта:
+После подключения репозитория к Vercel добавьте переменные окружения в настройках проекта.
 
-### Обязательные переменные:
+### Обязательные переменные
 
-1. **GIGACHAT_AUTH_KEY**
-   - Значение: ваш ключ авторизации GigaChat (Base64 строка)
-   - Получите в личном кабинете: https://developers.sber.ru
+1. **GROQ_API_KEY**
+   - Значение: API-ключ Groq
+   - Получить: https://console.groq.com/keys
+   - Без него генерация слайдов через AI не работает
 
-2. **GIGACHAT_SCOPE**
-   - Значение: `GIGACHAT_API_PERS` (для физлиц) или `GIGACHAT_API_B2B` / `GIGACHAT_API_CORP` (для ИП/юрлиц)
-   - По умолчанию: `GIGACHAT_API_PERS`
+### Опциональные переменные
 
-### Опциональные переменные:
+2. **GROQ_MODEL**
+   - Модель для генерации текста. По умолчанию: `llama-3.3-70b-versatile`
+   - Список моделей: https://console.groq.com/docs/models
+   - Примеры: `llama-3.1-8b-instant`, `openai/gpt-oss-20b`, `qwen/qwen3-32b`
 
 3. **REPLICATE_API_TOKEN**
-   - Значение: токен для генерации изображений через Replicate
-   - Получите на: https://replicate.com/account/api-tokens
+   - Токен для генерации изображений через Replicate
+   - Получить: https://replicate.com/account/api-tokens
 
 4. **HTTPS_PROXY** / **HTTP_PROXY**
-   - Значение: URL прокси-сервера (например, `http://proxy.example.com:8080`)
-   - Используется для обхода сетевых ограничений при запросах к GigaChat API
-   - Формат: `http://username:password@proxy.example.com:8080` или `http://proxy.example.com:8080`
-   - Если не указано, запросы идут напрямую
-
-5. **GIGACHAT_DISABLE_SSL_CHECK** (рекомендуется установить на Vercel)
-   - Значение: `true` для отключения проверки SSL сертификатов
-   - ⚠️ **Рекомендуется установить на Vercel**, так как GigaChat API может иметь проблемы с сертификатами
-   - На Vercel автоматически отключается проверка SSL (если `VERCEL=1`)
-   - По умолчанию: автоматически `true` на Vercel, локально — `false`
-
-6. **GIGACHAT_USE_HTTPS_REQUEST** (если fetch не работает на Vercel)
-   - Значение: `true` для использования альтернативного способа запроса через `https.request`
-   - Используйте если получаете ошибку "fetch failed" на Vercel
-   - По умолчанию: автоматически включается на Vercel (`VERCEL=1`)
+   - URL прокси (если нужен обход сетевых ограничений)
+   - Node.js fetch использует их автоматически
 
 ## Шаг 3: Настройка переменных окружения
 
-1. Откройте ваш проект на Vercel
+1. Откройте проект на Vercel
 2. Перейдите в **Settings** → **Environment Variables**
-3. Добавьте все необходимые переменные для всех окружений (Production, Preview, Development)
+3. Добавьте **GROQ_API_KEY** для окружения **Production** (и при необходимости Preview/Development)
 
 ## Шаг 4: Деплой
 
-После настройки переменных окружения:
-1. Vercel автоматически запустит новый деплой
-2. Или нажмите **Deployments** → **Redeploy**
+После настройки переменных:
+1. Vercel автоматически запустит новый деплой при пуше
+2. Или **Deployments** → **Redeploy** (после добавления переменных обязательно сделайте Redeploy)
 
 ## Возможные проблемы и решения
 
 ### Ошибка: "Module not found" или проблемы с зависимостями
 - Убедитесь, что все зависимости указаны в `package.json`
-- Проверьте, что используется правильная версия Node.js (Vercel автоматически определяет)
+- Проверьте версию Node.js (Vercel определяет автоматически)
 
 ### Ошибка: "Environment variable not found"
-- Проверьте, что все переменные окружения добавлены в настройках Vercel
-- Убедитесь, что переменные добавлены для нужного окружения (Production/Preview/Development)
+- Проверьте, что переменные добавлены в **Settings** → **Environment Variables**
+- Убедитесь, что выбран нужный scope (Production/Preview/Development)
 
 ### Ошибка: "Build failed"
 - Проверьте логи билда в Vercel Dashboard
-- Убедитесь, что `yarn build` выполняется успешно локально
+- Локально выполните `yarn build`
 
 ### POST `/api/ai/generate` возвращает 500 (Internal Server Error)
-Чаще всего причина — **не задан ключ GigaChat на Vercel**:
-1. Vercel → ваш проект → **Settings** → **Environment Variables**
-2. Добавьте **GIGACHAT_AUTH_KEY** (значение — Base64 ключ из личного кабинета Sber) для окружения **Production** (и при необходимости Preview).
-3. Сохраните и сделайте **Redeploy** (Deployments → … → Redeploy), иначе старый билд продолжит работать без переменных.
-4. В браузере при 500 в алерте должно показываться сообщение с сервера (например: «GIGACHAT_AUTH_KEY не настроен»). Если видите его — добавьте переменную и переразверните.
+Чаще всего причина — **не задан ключ Groq на Vercel**:
+1. Vercel → проект → **Settings** → **Environment Variables**
+2. Добавьте **GROQ_API_KEY** (ключ из https://console.groq.com/keys) для **Production**
+3. Сохраните и сделайте **Redeploy** (Deployments → … → Redeploy)
+4. В браузере при 500 в алерте показывается сообщение с сервера (например: «GROQ_API_KEY не настроен»)
 
-Сообщение в консоли вида `Unchecked runtime.lastError: Could not establish connection. Receiving end does not exist` обычно от расширения браузера (например React DevTools), не от приложения — его можно игнорировать.
+Сообщение в консоли `Unchecked runtime.lastError: Could not establish connection. Receiving end does not exist` — от расширения браузера (например React DevTools), не от приложения; его можно игнорировать.
 
-### Ошибка с GigaChat API
-- Проверьте правильность `GIGACHAT_AUTH_KEY`
-- Убедитесь, что `GIGACHAT_SCOPE` соответствует вашему типу аккаунта
-- Проверьте, что токен не истек
+### Ошибки Groq API
+- **401:** неверный или отсутствующий GROQ_API_KEY — проверьте ключ на https://console.groq.com/keys
+- **429:** превышен лимит запросов — подождите или проверьте квоты в консоли Groq
+- **Таймаут:** Groq обычно отвечает быстро; при долгом ожидании проверьте Runtime Logs в Vercel
 
 ## Проверка деплоя
 
 После успешного деплоя:
-1. Откройте URL вашего приложения
-2. Проверьте, что главная страница загружается
-3. Попробуйте создать презентацию через AI генератор
+1. Откройте URL приложения
+2. Проверьте загрузку главной страницы
+3. Создайте презентацию через AI (тема → «Сгенерировать структуру» или полная генерация)
 
 ## Поддержка
 
 Если возникли проблемы:
-1. Проверьте логи в Vercel Dashboard → Deployments → [ваш деплой] → Build Logs
-2. Проверьте Runtime Logs для ошибок во время выполнения
-3. Убедитесь, что все переменные окружения настроены правильно
+1. **Build Logs:** Vercel Dashboard → Deployments → [деплой] → Build Logs
+2. **Runtime Logs:** Functions → лог функции для `/api/ai/generate` — там будет текст ошибки при 500
+3. Убедитесь, что **GROQ_API_KEY** задан и после добавления переменных сделан **Redeploy**
