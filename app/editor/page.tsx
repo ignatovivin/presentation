@@ -235,7 +235,7 @@ export default function EditorPage() {
           if (pres) {
             store.deleteSlide(pres.slides[0].id)
             outlineCards.forEach((card, i) => {
-              store.addSlide({ type: 'content', title: card.title || 'Слайд', content: card.content || '', order: i })
+              store.addSlide({ type: 'content', title: card.title || 'Слайд', content: card.content || '' })
             })
           }
           if (typeof window !== 'undefined') localStorage.setItem('outline-show-result', 'true')
