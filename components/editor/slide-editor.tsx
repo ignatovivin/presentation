@@ -108,7 +108,9 @@ export function SlideEditor({ slide, onUpdate, onDelete }: SlideEditorProps) {
     if (!editor) return
     const onFocus = () => { setToolbarOpen(false); setTitleToolbarOpen(false); setBodyToolbarOpen(true) }
     editor.on('focus', onFocus)
-    return () => editor.off('focus', onFocus)
+    return () => {
+      editor.off('focus', onFocus)
+    }
   }, [editor])
 
   return (
