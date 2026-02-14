@@ -39,7 +39,8 @@
     "@radix-ui/react-toast": "^1.1.5",
     "@radix-ui/react-tabs": "^1.0.4",
     "@radix-ui/react-popover": "^1.0.7",
-    "@types/reveal.js": "^4.3.0"
+    "@types/reveal.js": "^4.3.0",
+    "framer-motion": "^11.0.0"
   },
   "devDependencies": {
     "eslint": "^8.57.0",

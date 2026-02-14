@@ -23,6 +23,7 @@ import {
 } from '@dnd-kit/core'
 import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import { motion } from 'framer-motion'
 import { ArrowDown, ArrowLeft, ArrowUp, Check, Edit3, FileText, GripVertical, Loader2, Play, Plus, Sparkles, Trash2 } from 'lucide-react'
 
 const SLIDES_COUNT_OPTIONS = [3, 5, 7, 10]
@@ -73,10 +74,12 @@ function CardItem({
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 }
 
   return (
-    <div
+    <motion.div
+      layout
+      transition={{ type: 'spring', stiffness: 350, damping: 30 }}
       ref={setNodeRef}
       style={style}
-      className="flex gap-3 p-4 rounded-xl bg-white border border-gray-200 hover:border-gray-300 transition-colors"
+      className="flex gap-3 p-8 rounded-xl bg-white border border-[rgba(0,0,0,0.08)] transition-all duration-300 ease-in-out focus-within:shadow-[rgba(0,0,0,0.08)_0px_16px_32px] focus-within:-translate-y-0.5 focus-within:border-gray-300"
       onContextMenu={onContextMenuProp}
     >
       <button type="button" className="touch-none cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 shrink-0 mt-1" {...attributes} {...listeners}>
@@ -87,16 +90,16 @@ function CardItem({
           value={card.title}
           onChange={(e) => onTitleChange(e.target.value)}
           placeholder="Заголовок слайда"
-          className="font-medium border-gray-200 rounded-lg"
+          className="font-medium border-gray-200 rounded-lg focus-visible:ring-0 focus-visible:ring-offset-0"
         />
         <Textarea
           value={card.content}
           onChange={(e) => onContentChange(e.target.value)}
           placeholder="Текст или тезисы"
-          className="min-h-[80px] resize-none border-gray-200 rounded-lg text-sm"
+          className="min-h-[80px] resize-none border-gray-200 rounded-lg text-sm focus-visible:ring-0 focus-visible:ring-offset-0"
         />
       </div>
-    </div>
+    </motion.div>
   )
 }
 
@@ -241,19 +244,16 @@ export default function OutlinePage() {
   const regenerateCardContent = async (id: string) => {
     const card = cards.find((c) => c.id === id)
     if (!card) return
-    if (!topic.trim()) {
-      alert('Введите тему презентации в поле выше для контекста генерации')
-      setContextMenu(null)
-      return
-    }
     setContextMenu(null)
     setLoadingCardId(id)
+    const topicForRequest =
+      topic.trim() || `${card.title || 'Слайд'}. ${(card.content || '').slice(0, 200)}`.trim() || 'Один слайд'
     try {
       const res = await fetch('/api/ai/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          topic: `${topic.trim()}. Слайд: ${card.title || 'без названия'}. ${(card.content || '').slice(0, 150)}`,
+          topic: topicForRequest,
           slidesCount: 1,
           style: aiSettings.tone,
           language: aiSettings.language,
@@ -261,18 +261,22 @@ export default function OutlinePage() {
           outlineOnly: true,
         }),
       })
+      const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}))
         throw new Error(data?.error || res.statusText || 'Ошибка генерации')
       }
-      const data = await res.json()
-      const slides = data.slides || []
+      const slides = Array.isArray(data?.slides) ? data.slides : []
       const first = slides[0]
-      if (first) {
+      if (first && (first.title != null || first.content != null)) {
         updateCard(id, {
-          title: first.title || card.title,
-          content: (first.content || '').replace(/<[^>]+>/g, ' ').trim() || card.content,
+          title: first.title ?? card.title,
+          content: (first.content ?? card.content)
+            .toString()
+            .replace(/<[^>]+>/g, ' ')
+            .trim() || card.content,
         })
+      } else {
+        alert('API вернул пустой ответ. Попробуйте ещё раз или укажите тему выше.')
       }
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Не удалось сгенерировать текст')
@@ -378,12 +382,17 @@ export default function OutlinePage() {
 
         <section className="mb-8">
           <label className="text-sm font-medium text-gray-900 mb-1 block">Тема (для перегенерации контента)</label>
-          <Textarea
-            value={topic}
-            onChange={(e) => setTopic(e.target.value)}
-            placeholder="О чём презентация?"
-            className="min-h-[100px] resize-none rounded-xl border-gray-200 bg-white mb-3"
-          />
+          <div
+            className="rounded-2xl border bg-white mb-3 transition-all duration-300 ease-in-out focus-within:shadow-[rgba(0,0,0,0.08)_0px_16px_32px] focus-within:-translate-y-0.5"
+            style={{ borderColor: 'rgba(0, 0, 0, 0.08)' }}
+          >
+            <Textarea
+              value={topic}
+              onChange={(e) => setTopic(e.target.value)}
+              placeholder="О чём презентация?"
+              className="min-h-[100px] pt-4 px-3 pb-3 text-base resize-none rounded-2xl border-0 bg-transparent text-black placeholder:text-gray-400 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none"
+            />
+          </div>
           <div className="flex flex-wrap items-center gap-3">
             <div>
               <span className="text-sm text-gray-500 mr-2">Количество карточек:</span>
