@@ -40,7 +40,7 @@ export default function EditorPage() {
   const [hasGenerated, setHasGenerated] = useState(false)
   /** Рендер контента только после монтирования — устраняет гидрацию #418 (store/localStorage/расширения). */
   const [mounted, setMounted] = useState(false)
-
+  /** Размер главного блока: null = авто (адаптивно), иначе — заданный пользователем (ресайз мышью). */
   // Используем ref для отслеживания запущенной генерации (синхронный доступ)
   const isGeneratingRef = useRef(false)
   const hasGeneratedRef = useRef(false)
@@ -358,8 +358,8 @@ export default function EditorPage() {
         </div>
       </header>
 
-      {/* Main Editor */}
-      <div className="flex-1 flex overflow-hidden">
+      {/* Main Editor — грид: колонка слайдов + центральная область */}
+      <div className="flex-1 grid grid-cols-[110px_1fr] min-h-0 overflow-visible">
         <SlideList
           slides={currentPresentation.slides}
           currentSlideId={currentSlideId}
@@ -371,21 +371,15 @@ export default function EditorPage() {
           onChangeSlideType={handleChangeSlideType}
         />
 
-        {/* Центральная область — окно слайда 1558×878 по центру */}
-        <div className="relative flex-1 overflow-hidden bg-white flex items-center justify-center p-4 min-h-0">
+        {/* Центральная область — грид для центрирования окна слайда */}
+        <div className="relative overflow-visible bg-white grid place-items-center p-4 min-h-0">
           {currentSlide ? (
             <div
               id={`slide-${currentSlide.id}`}
-              className="absolute inset-0 flex items-center justify-center p-6"
+              className="absolute inset-0 grid place-items-center p-6 overflow-visible"
             >
-              {/* Окно слайда: адаптивно от 1920 (1558×878), по центру */}
-              <div
-                className="aspect-[1558/878] bg-white shrink-0 overflow-hidden rounded-[32px]"
-                style={{
-                  // При 1920×1080 = 1558×878; масштаб по экрану (vw/vh), не больше 1558×878
-                  width: 'min(81.15vw, 144.2vh, 1558px)',
-                }}
-              >
+              {/* Окно слайда: по умолчанию как в PowerPoint — 16:9, макс 1280×720 */}
+              <div className="w-full max-w-[1280px] max-h-full aspect-video bg-white overflow-visible rounded-[32px] shrink-0">
                 <SlideEditor
                   slide={currentSlide}
                   onUpdate={handleSlideUpdate}

@@ -20,6 +20,8 @@ export interface Slide {
   titleAlign?: ContentAlign
   /** Выравнивание текста тела слайда */
   bodyAlign?: ContentAlign
+  /** Размер шрифта тела слайда (например 14, 16, 18) */
+  bodyFontSize?: number
 }
 
 export interface Presentation {

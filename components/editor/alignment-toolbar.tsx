@@ -30,11 +30,7 @@ export function AlignmentToolbar({
 }: AlignmentToolbarProps) {
   return (
     <div
-      className={cn(
-        'inline-flex items-center gap-0.5 rounded-xl border bg-[#f5f5f5] p-1 shadow-md',
-        className
-      )}
-      style={{ borderColor: 'rgba(0,0,0,0.08)' }}
+      className={cn('inline-flex items-center gap-0.5', className)}
       role="toolbar"
       aria-label="Позиция блока"
     >

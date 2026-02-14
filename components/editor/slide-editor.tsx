@@ -7,7 +7,7 @@ import Placeholder from '@tiptap/extension-placeholder'
 import type { Slide, ContentAlign, VerticalAlign } from '@/lib/types'
 import { Input } from '@/components/ui/input'
 import { AlignmentToolbar } from './alignment-toolbar'
-import { TextAlignToolbar } from './text-align-toolbar'
+import { TextStyleMenu } from './text-style-menu'
 import { cn } from '@/lib/utils'
 
 interface SlideEditorProps {
@@ -29,42 +29,31 @@ const verticalAlignClass: Record<VerticalAlign, string> = {
 }
 
 export function SlideEditor({ slide, onUpdate, onDelete }: SlideEditorProps) {
-  const [toolbarOpen, setToolbarOpen] = useState(false)
-  const [titleToolbarOpen, setTitleToolbarOpen] = useState(false)
-  const [bodyToolbarOpen, setBodyToolbarOpen] = useState(false)
+  /** Одно меню: режим зависит от того, куда нажали — блок или текст */
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [menuMode, setMenuMode] = useState<'block' | 'text'>('block')
+  const [textFocusSource, setTextFocusSource] = useState<'title' | 'body'>('body')
   const blockRef = useRef<HTMLDivElement>(null)
 
   const contentAlign = slide.contentAlign ?? 'center'
   const verticalAlign = slide.verticalAlign ?? 'middle'
   const titleAlign = slide.titleAlign ?? 'center'
   const bodyAlign = slide.bodyAlign ?? 'center'
+  const bodyFontSize = slide.bodyFontSize ?? 16
 
+  // Фокус блока и работа в нём заканчиваются только при клике мимо (вне блока и вне меню)
   useEffect(() => {
-    if (!toolbarOpen) return
+    if (!menuOpen) return
     const close = (e: MouseEvent) => {
       const target = e.target as Node
-      if (blockRef.current?.contains(target)) return
-      const toolbar = document.querySelector('[data-alignment-toolbar]')
-      if (toolbar?.contains(target)) return
-      setToolbarOpen(false)
+      if (blockRef.current?.contains(target)) return // клик внутри блока — не закрывать
+      const menuZone = document.querySelector('[data-unified-menu]')
+      if (menuZone?.contains(target)) return // клик по меню — не закрывать
+      setMenuOpen(false)
     }
     document.addEventListener('mousedown', close)
     return () => document.removeEventListener('mousedown', close)
-  }, [toolbarOpen])
-
-  useEffect(() => {
-    if (!titleToolbarOpen) return
-    const close = (e: MouseEvent) => {
-      const target = e.target as Node
-      const toolbar = document.querySelector('[data-text-toolbar="title"]')
-      if (toolbar?.contains(target)) return
-      const input = blockRef.current?.querySelector('input')
-      if (input?.contains(target)) return
-      setTitleToolbarOpen(false)
-    }
-    document.addEventListener('mousedown', close)
-    return () => document.removeEventListener('mousedown', close)
-  }, [titleToolbarOpen])
+  }, [menuOpen])
 
   const editor = useEditor({
     extensions: [
@@ -91,22 +80,12 @@ export function SlideEditor({ slide, onUpdate, onDelete }: SlideEditorProps) {
   }, [slide.id, editor])
 
   useEffect(() => {
-    if (!bodyToolbarOpen) return
-    const close = (e: MouseEvent) => {
-      const target = e.target as Node
-      const toolbar = document.querySelector('[data-text-toolbar="body"]')
-      if (toolbar?.contains(target)) return
-      const editable = blockRef.current?.querySelector('[contenteditable="true"]')
-      if (editable?.contains(target)) return
-      setBodyToolbarOpen(false)
-    }
-    document.addEventListener('mousedown', close)
-    return () => document.removeEventListener('mousedown', close)
-  }, [bodyToolbarOpen])
-
-  useEffect(() => {
     if (!editor) return
-    const onFocus = () => { setToolbarOpen(false); setTitleToolbarOpen(false); setBodyToolbarOpen(true) }
+    const onFocus = () => {
+      setMenuOpen(true)
+      setMenuMode('text')
+      setTextFocusSource('body')
+    }
     editor.on('focus', onFocus)
     return () => {
       editor.off('focus', onFocus)
@@ -114,101 +93,118 @@ export function SlideEditor({ slide, onUpdate, onDelete }: SlideEditorProps) {
   }, [editor])
 
   return (
-    <div className="w-full h-full bg-white flex flex-col">
-      {/* Главный блок сверху: без смещений при открытии меню */}
-      <div
-        ref={blockRef}
-        className={cn(
-          'group relative flex-1 min-h-0 p-6 flex flex-col cursor-pointer rounded-t-xl transition-[box-shadow] overflow-hidden',
-          toolbarOpen && 'ring-4 ring-[rgb(52,137,243)]'
-        )}
-        onClick={(e) => {
-          const target = e.target as HTMLElement
-          if (target.closest('input') || target.closest('[contenteditable="true"]') || target.closest('[data-alignment-toolbar]') || target.closest('[data-text-toolbar]')) return
-          setTitleToolbarOpen(false)
-          setBodyToolbarOpen(false)
-          setToolbarOpen((v) => !v)
-        }}
-      >
-        <div
-          className="absolute inset-0 rounded-lg bg-black/0 transition-[background-color] duration-200 pointer-events-none group-hover:bg-black/10"
-          aria-hidden
-        />
-        {/* Область блока: позиция по вертикали (justify) и горизонтали (items) */}
-        <div
-          className={cn(
-            'relative flex-1 flex flex-col min-h-0',
-            verticalAlignClass[verticalAlign],
-            contentAlignClass[contentAlign]
-          )}
-        >
-          {/* Блок контента: ширина меньше 100%, чтобы items-start/center/end сдвигали его */}
-          <div className="flex flex-col w-[85%] max-w-4xl">
-            <div className="relative" onClick={(e) => e.stopPropagation()}>
-              <Input
-                value={slide.title || ''}
-                onChange={(e) => onUpdate({ title: e.target.value })}
-                onFocus={() => { setToolbarOpen(false); setBodyToolbarOpen(false); setTitleToolbarOpen(true) }}
-                placeholder="Заголовок слайда"
-                className={cn(
-                  'text-5xl font-bold border-none focus-visible:ring-0 p-0 h-auto bg-transparent text-black placeholder:text-gray-300 w-full',
-                  titleAlign === 'left' && 'text-left',
-                  titleAlign === 'center' && 'text-center',
-                  titleAlign === 'right' && 'text-right'
-                )}
-              />
-            </div>
-            <div className="w-full mt-8 min-h-[200px]" onClick={(e) => e.stopPropagation()}>
-              {slide.imageUrl && slide.imageUrl.startsWith('http') && (
-                <div className="relative mb-6">
-                  <img
-                    src={slide.imageUrl}
-                    alt={slide.title || 'Slide image'}
-                    className="w-full max-h-96 object-contain rounded-lg"
-                  />
-                </div>
+    <div className="w-full h-full bg-white grid grid-cols-1 grid-rows-[0_1fr] overflow-visible">
+      {/* Горизонтальная грид-полоса для меню (высота 0 → не сдвигает блок, меню рисуется НАД блоком) */}
+      <div className="relative overflow-visible">
+        {menuOpen && (
+          <div
+            className="z-10 flex justify-center py-1 pointer-events-none"
+            style={{ position: 'fixed', left: '50%', transform: 'translateX(-50%) translateY(calc(-100% - 12px))' }}
+            aria-hidden
+          >
+            <div
+              data-unified-menu
+              onClick={(e) => e.stopPropagation()}
+              className="pointer-events-auto inline-flex items-center gap-0.5 bg-white rounded-2xl px-3 py-1.5"
+              style={{
+                boxShadow: 'rgba(0, 0, 0, 0.06) 0px 20px 32px',
+                border: '1px solid rgba(0, 0, 0, 0.08)',
+              }}
+            >
+              {menuMode === 'block' && (
+                <AlignmentToolbar
+                  contentAlign={contentAlign}
+                  verticalAlign={verticalAlign}
+                  onContentAlign={(v) => onUpdate({ contentAlign: v })}
+                  onVerticalAlign={(v) => onUpdate({ verticalAlign: v })}
+                  onDelete={onDelete}
+                />
               )}
-              <div
-                className={cn(
-                  'min-h-[200px] w-full relative',
-                  bodyAlign === 'left' && 'text-left',
-                  bodyAlign === 'center' && 'text-center',
-                  bodyAlign === 'right' && 'text-right'
+              {menuMode === 'text' && (
+                <TextStyleMenu
+                  editor={editor}
+                  isTitleFocused={textFocusSource === 'title'}
+                  titleAlign={titleAlign}
+                  bodyAlign={bodyAlign}
+                  bodyFontSize={bodyFontSize}
+                  onTitleAlign={(v) => onUpdate({ titleAlign: v })}
+                  onBodyAlign={(v) => onUpdate({ bodyAlign: v })}
+                  onBodyFontSize={(v) => onUpdate({ bodyFontSize: v })}
+                />
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+      {/* Ячейка грида: главный блок (под меню, не сдвигается) */}
+      <div className="min-h-0 overflow-visible grid grid-cols-1 grid-rows-1">
+        <div
+          ref={blockRef}
+          style={{ display: 'flex', flexDirection: 'column' }}
+          className={cn(
+            'group relative flex-1 min-h-0 p-6 cursor-pointer rounded-xl transition-[box-shadow] overflow-visible bg-transparent',
+            menuOpen && menuMode === 'block' && 'shadow-[0_0_0_4px_rgb(52,137,243)]'
+          )}
+          onClick={(e) => {
+            const target = e.target as HTMLElement
+            if (target.closest('input') || target.closest('[contenteditable="true"]') || target.closest('[data-unified-menu]')) return
+            setMenuOpen(true)
+            setMenuMode('block')
+          }}
+        >
+          <div
+            className="absolute inset-0 rounded-xl bg-transparent transition-[background-color] duration-200 pointer-events-none group-hover:bg-[rgb(245,245,245)]"
+            aria-hidden
+          />
+          <div
+            className={cn(
+              'relative flex-1 flex flex-col min-h-0',
+              verticalAlignClass[verticalAlign],
+              contentAlignClass[contentAlign]
+            )}
+          >
+            <div className="flex flex-col w-[85%] max-w-4xl">
+              <div className="relative" onClick={(e) => e.stopPropagation()}>
+                <Input
+                  value={slide.title || ''}
+                  onChange={(e) => onUpdate({ title: e.target.value })}
+                  onFocus={() => { setMenuOpen(true); setMenuMode('text'); setTextFocusSource('title') }}
+                  placeholder="Заголовок слайда"
+                  className={cn(
+                    'text-5xl font-bold border-none focus-visible:ring-0 p-0 h-auto bg-transparent text-black placeholder:text-gray-300 w-full',
+                    titleAlign === 'left' && 'text-left',
+                    titleAlign === 'center' && 'text-center',
+                    titleAlign === 'right' && 'text-right'
+                  )}
+                />
+              </div>
+              <div className="w-full mt-8 min-h-[200px]" onClick={(e) => e.stopPropagation()}>
+                {slide.imageUrl && slide.imageUrl.startsWith('http') && (
+                  <div className="relative mb-6">
+                    <img
+                      src={slide.imageUrl}
+                      alt={slide.title || 'Slide image'}
+                      className="w-full max-h-96 object-contain rounded-lg"
+                    />
+                  </div>
                 )}
-              >
-                <div onFocus={() => { setToolbarOpen(false); setTitleToolbarOpen(false); setBodyToolbarOpen(true) }} className="min-h-[200px]">
-                  <EditorContent editor={editor} />
+                <div
+                  className={cn(
+                    'min-h-[200px] w-full relative',
+                    bodyAlign === 'left' && 'text-left',
+                    bodyAlign === 'center' && 'text-center',
+                    bodyAlign === 'right' && 'text-right'
+                  )}
+                  style={{ fontSize: bodyFontSize ? `${bodyFontSize}px` : undefined }}
+                >
+                  <div onFocus={() => { setMenuOpen(true); setMenuMode('text'); setTextFocusSource('body') }} className="min-h-[200px]">
+                    <EditorContent editor={editor} />
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Зона меню внизу (уровень фиолетовой полосы): фиксированная высота — без смещения блока */}
-      <div className="flex-shrink-0 h-[52px] flex items-center justify-center border-t border-gray-100 bg-white">
-        {toolbarOpen && (
-          <div data-alignment-toolbar onClick={(e) => e.stopPropagation()}>
-            <AlignmentToolbar
-              contentAlign={contentAlign}
-              verticalAlign={verticalAlign}
-              onContentAlign={(v) => onUpdate({ contentAlign: v })}
-              onVerticalAlign={(v) => onUpdate({ verticalAlign: v })}
-              onDelete={onDelete}
-            />
-          </div>
-        )}
-        {(titleToolbarOpen || bodyToolbarOpen) && (
-          <div data-text-toolbar={titleToolbarOpen ? 'title' : 'body'} onClick={(e) => e.stopPropagation()}>
-            <TextAlignToolbar
-              value={titleToolbarOpen ? titleAlign : bodyAlign}
-              onChange={(v) => {
-                onUpdate(titleToolbarOpen ? { titleAlign: v } : { bodyAlign: v })
-                // Меню не закрываем — только по клику вне меню
-              }}
-            />
-          </div>
-        )}
       </div>
     </div>
   )

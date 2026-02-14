@@ -210,19 +210,18 @@ export function SlideList({
   }
 
   return (
-    <div className="w-[110px] border-r flex flex-col bg-[rgb(255,255,255)]"
-      style={{ borderColor: 'rgba(0, 0, 0, 0.08)' }}
-    >
-      <div className="flex-1 overflow-y-auto p-2">
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={handleDragEnd}
-        >
-          <SortableContext
-            items={slides.map((s) => s.id)}
-            strategy={verticalListSortingStrategy}
+    <div className="w-[110px] flex flex-col bg-[rgb(255,255,255)]">
+      <div className="flex-1 overflow-y-auto p-2 flex flex-col items-center justify-center min-h-0">
+        <div className="flex flex-col items-center">
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
           >
+            <SortableContext
+              items={slides.map((s) => s.id)}
+              strategy={verticalListSortingStrategy}
+            >
             <div className="flex flex-col items-center">
               {slides.map((slide) => (
                 <SortableSlideItem
@@ -248,6 +247,7 @@ export function SlideList({
             </div>
           </SortableContext>
         </DndContext>
+        </div>
       </div>
     </div>
   )
