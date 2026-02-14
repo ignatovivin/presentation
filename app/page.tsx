@@ -8,6 +8,13 @@ import { Play } from 'lucide-react'
 import Image from 'next/image'
 import { AIGenerator } from '@/components/editor/ai-generator'
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 const PLACEHOLDER_VARIANTS = [
   'Питч-презентация для серии A раунда...',
@@ -21,6 +28,17 @@ export default function HomePage() {
   const [aiDialogOpen, setAiDialogOpen] = useState(false)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [placeholderIndex, setPlaceholderIndex] = useState(0)
+  const SLIDES_COUNT_OPTIONS = [3, 5, 7, 10]
+  const [slidesCount, setSlidesCount] = useState(() => {
+    if (typeof window === 'undefined') return 5
+    const v = localStorage.getItem('slides-count')
+    const n = parseInt(v || '5', 10)
+    return Number.isFinite(n) && n >= 1 && n <= 50 ? n : 5
+  })
+  const setSlidesCountAndSave = (n: number) => {
+    setSlidesCount(n)
+    if (typeof window !== 'undefined') localStorage.setItem('slides-count', String(n))
+  }
 
   const handleGenerate = () => {
     if (!content.trim()) {
@@ -30,8 +48,9 @@ export default function HomePage() {
     const topic = content.trim()
     if (typeof window !== 'undefined') {
       localStorage.setItem('prompt', topic)
+      localStorage.setItem('slides-count', String(slidesCount))
     }
-    router.push(`/template?topic=${encodeURIComponent(topic)}`)
+    router.push('/outline')
   }
 
   const handleFilesClick = () => {
@@ -105,21 +124,39 @@ export default function HomePage() {
           
           {/* Action buttons inside textarea */}
           <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
-            <button
-              type="button"
-              onClick={handleFilesClick}
-              className="flex h-9 items-center gap-1 px-3 py-1.5 text-sm cursor-pointer text-[rgb(110,109,109)] border border-[rgb(231,231,231)] rounded-xl bg-white hover:text-gray-900 hover:bg-[rgba(0,0,0,0.04)]"
-            >
-              <Image
-                src="/icons/upload.svg"
-                alt="Файлы"
-                width={20}
-                height={20}
-                className="h-5 w-5"
-              />
-              <span>Файлы</span>
-            </button>
-            
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleFilesClick}
+                className="flex h-9 items-center gap-1 px-3 py-1.5 text-sm cursor-pointer text-[rgb(110,109,109)] border border-[rgb(231,231,231)] rounded-xl bg-white hover:text-gray-900 hover:bg-[rgba(0,0,0,0.04)]"
+              >
+                <Image
+                  src="/icons/upload.svg"
+                  alt="Файлы"
+                  width={20}
+                  height={20}
+                  className="h-5 w-5"
+                />
+                <span>Файлы</span>
+              </button>
+              <Select value={String(slidesCount)} onValueChange={(v) => setSlidesCountAndSave(parseInt(v, 10))}>
+              <SelectTrigger
+                className="h-9 px-3 py-1.5 w-auto rounded-xl border-[rgb(231,231,231)] bg-white text-[rgb(110,109,109)] text-sm hover:bg-[rgba(0,0,0,0.02)]"
+                title="Количество слайдов для генерации"
+              >
+                <SelectValue>
+                  {slidesCount} слайдов
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {SLIDES_COUNT_OPTIONS.map((n) => (
+                  <SelectItem key={n} value={String(n)}>
+                    {n} слайдов
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            </div>
             <div className="flex items-center gap-2">
               <Popover open={aiDialogOpen} onOpenChange={setAiDialogOpen}>
                 <PopoverTrigger asChild>

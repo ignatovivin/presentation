@@ -142,9 +142,10 @@ export function SlideEditor({ slide, onUpdate, onDelete }: SlideEditorProps) {
           ref={blockRef}
           style={{ display: 'flex', flexDirection: 'column' }}
           className={cn(
-            'group relative flex-1 min-h-0 p-6 cursor-pointer rounded-xl transition-[box-shadow] overflow-visible bg-transparent',
+            'group relative flex-1 min-h-0 cursor-pointer rounded-xl transition-[box-shadow] overflow-visible bg-transparent',
             menuOpen && menuMode === 'block' && 'shadow-[0_0_0_4px_rgb(52,137,243)]'
           )}
+          style={{ padding: 'clamp(24px, 5%, 48px)' }}
           onClick={(e) => {
             const target = e.target as HTMLElement
             if (target.closest('input') || target.closest('[contenteditable="true"]') || target.closest('[data-unified-menu]')) return
@@ -156,48 +157,57 @@ export function SlideEditor({ slide, onUpdate, onDelete }: SlideEditorProps) {
             className="absolute inset-0 rounded-xl bg-transparent transition-[background-color] duration-200 pointer-events-none group-hover:bg-[rgb(245,245,245)]"
             aria-hidden
           />
+          {/* Область контента как в PowerPoint: выравнивание по вертикали/горизонтали, контент внутри границ */}
           <div
             className={cn(
-              'relative flex-1 flex flex-col min-h-0',
+              'relative flex-1 flex flex-col min-h-0 w-full',
               verticalAlignClass[verticalAlign],
               contentAlignClass[contentAlign]
             )}
           >
-            <div className="flex flex-col w-[85%] max-w-4xl">
-              <div className="relative" onClick={(e) => e.stopPropagation()}>
+            <div className="flex flex-col w-full max-w-full flex-1 min-h-0">
+              {/* Заголовок — как в PowerPoint, верхний плейсхолдер */}
+              <div className="relative flex-shrink-0" onClick={(e) => e.stopPropagation()}>
                 <Input
                   value={slide.title || ''}
                   onChange={(e) => onUpdate({ title: e.target.value })}
                   onFocus={() => { setMenuOpen(true); setMenuMode('text'); setTextFocusSource('title') }}
                   placeholder="Заголовок слайда"
                   className={cn(
-                    'text-5xl font-bold border-none focus-visible:ring-0 p-0 h-auto bg-transparent text-black placeholder:text-gray-300 w-full',
+                    'text-[2rem] font-bold leading-tight border-none focus-visible:ring-0 p-0 h-auto bg-transparent text-black placeholder:text-gray-400 w-full',
                     titleAlign === 'left' && 'text-left',
                     titleAlign === 'center' && 'text-center',
                     titleAlign === 'right' && 'text-right'
                   )}
                 />
               </div>
-              <div className="w-full mt-8 min-h-[200px]" onClick={(e) => e.stopPropagation()}>
+              {/* Тело слайда: картинка + текст, при переполнении — прокрутка внутри слайда */}
+              <div
+                className="flex-1 min-h-0 w-full mt-4 overflow-y-auto overflow-x-hidden flex flex-col"
+                onClick={(e) => e.stopPropagation()}
+              >
                 {slide.imageUrl && slide.imageUrl.startsWith('http') && (
-                  <div className="relative mb-6">
+                  <div className="relative mb-4 flex-shrink-0">
                     <img
                       src={slide.imageUrl}
                       alt={slide.title || 'Slide image'}
-                      className="w-full max-h-96 object-contain rounded-lg"
+                      className="w-full max-h-[40vh] object-contain rounded-lg"
                     />
                   </div>
                 )}
                 <div
                   className={cn(
-                    'min-h-[200px] w-full relative',
+                    'min-h-[120px] w-full relative flex-1',
                     bodyAlign === 'left' && 'text-left',
                     bodyAlign === 'center' && 'text-center',
                     bodyAlign === 'right' && 'text-right'
                   )}
                   style={{ fontSize: bodyFontSize ? `${bodyFontSize}px` : undefined }}
                 >
-                  <div onFocus={() => { setMenuOpen(true); setMenuMode('text'); setTextFocusSource('body') }} className="min-h-[200px]">
+                  <div
+                    onFocus={() => { setMenuOpen(true); setMenuMode('text'); setTextFocusSource('body') }}
+                    className="min-h-[120px]"
+                  >
                     <EditorContent editor={editor} />
                   </div>
                 </div>

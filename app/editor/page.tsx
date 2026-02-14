@@ -74,10 +74,11 @@ export default function EditorPage() {
         }
       }
 
+      const slidesCount = Math.min(50, Math.max(1, parseInt(typeof window !== 'undefined' ? (localStorage.getItem('slides-count') || '5') : '5', 10) || 5))
       // Подготавливаем данные для API с учетом всех настроек
       const generationOptions = {
         topic: prompt.trim(),
-        slidesCount: 5,
+        slidesCount,
         style: settings.tone || 'professional',
         includeImages: settings.imageType && settings.imageType !== 'none',
         imageType: settings.imageType || 'realistic',
@@ -166,12 +167,14 @@ export default function EditorPage() {
         })
       }
 
-      // Выбираем первый слайд
+      // Выбираем первый слайд и переходим на outline (режим «результат»)
       setTimeout(() => {
         const updatedPres = usePresentationStore.getState().currentPresentation
         if (updatedPres && updatedPres.slides.length > 0) {
           setCurrentSlideId(updatedPres.slides[0].id)
         }
+        if (typeof window !== 'undefined') localStorage.setItem('outline-show-result', 'true')
+        router.push('/outline')
       }, 200)
     } catch (error) {
       console.error('Ошибка генерации слайдов:', error)
@@ -194,6 +197,7 @@ export default function EditorPage() {
   }, [])
 
   useEffect(() => {
+    // Все значения с главного экрана: промпт, количество слайдов (slides-count), настройки AI (ai-settings)
     const prompt = localStorage.getItem('prompt')
     const aiSettings = localStorage.getItem('ai-settings')
     const shouldGenerate = localStorage.getItem('should-generate') === 'true'
@@ -201,9 +205,17 @@ export default function EditorPage() {
     // Шаблон, выбранный на странице /template (сохраняем в презентацию)
     const templateId = typeof window !== 'undefined' ? localStorage.getItem('presentation-template') : null
 
-    // Если установлен флаг should-generate, создаём новую презентацию с шаблоном
-    if (shouldGenerate && prompt && !isGeneratingRef.current && !hasGeneratedRef.current) {
+    // Если установлен флаг should-generate: либо создаём из outline-cards, либо полная генерация через AI
+    if (shouldGenerate && !isGeneratingRef.current && !hasGeneratedRef.current) {
       localStorage.removeItem('should-generate')
+
+      const outlineCardsStr = typeof window !== 'undefined' ? localStorage.getItem('outline-cards') : null
+      let outlineCards: { id: string; title: string; content: string }[] = []
+      if (outlineCardsStr) {
+        try {
+          outlineCards = JSON.parse(outlineCardsStr)
+        } catch {}
+      }
 
       if (currentPresentation) {
         const store = usePresentationStore.getState()
@@ -213,7 +225,26 @@ export default function EditorPage() {
       hasGeneratedRef.current = false
       setHasGenerated(false)
 
-      const title = prompt.length > 50 ? prompt.substring(0, 50) + '...' : prompt
+      const title = (prompt || '').length > 50 ? (prompt || '').substring(0, 50) + '...' : (prompt || 'Презентация')
+
+      if (outlineCards.length > 0) {
+        createPresentation(title, templateId || undefined)
+        setTimeout(() => {
+          const store = usePresentationStore.getState()
+          const pres = store.currentPresentation
+          if (pres) {
+            store.deleteSlide(pres.slides[0].id)
+            outlineCards.forEach((card, i) => {
+              store.addSlide({ type: 'content', title: card.title || 'Слайд', content: card.content || '', order: i })
+            })
+          }
+          if (typeof window !== 'undefined') localStorage.setItem('outline-show-result', 'true')
+          router.push('/outline')
+        }, 100)
+        return
+      }
+
+      if (!prompt) return
 
       setTimeout(() => {
         createPresentation(title, templateId || undefined)

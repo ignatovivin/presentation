@@ -280,7 +280,7 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    // Валидация обязательных полей
+    // Валидация обязательных полей (outlineOnly — только структура для страницы outline)
     const { 
       topic, 
       slidesCount, 
@@ -288,8 +288,9 @@ export async function POST(request: NextRequest) {
       includeImages = false,
       imageType = 'realistic',
       language = 'russian',
-      audience = ''
-    } = options
+      audience = '',
+      outlineOnly = false,
+    } = options as AIGenerationOptions & { outlineOnly?: boolean }
 
     if (!topic || typeof topic !== 'string' || topic.trim() === '') {
       return NextResponse.json(
@@ -306,30 +307,28 @@ export async function POST(request: NextRequest) {
     }
 
 
-    // Формируем детальный промпт с учетом всех настроек
-    let prompt = `Создай структуру презентации на тему: "${topic}"`
-    
-    if (audience) {
-      prompt += `\nЦелевая аудитория: ${audience}`
-    }
-    
-    prompt += `\nКоличество слайдов: ${slidesCount}`
-    prompt += `\nСтиль презентации: ${style}`
-    prompt += `\nЯзык: ${language}`
-    
-    if (includeImages && imageType !== 'none') {
-      prompt += `\nТип изображений: ${imageType}`
-    }
-
-    prompt += `\n\nДля каждого слайда верни объект с полями:
+    // Формируем промпт: для outlineOnly — короткая структура (заголовок + краткий контент), иначе полная генерация
+    let prompt: string
+    if (outlineOnly) {
+      prompt = `Создай краткую структуру (outline) презентации на тему: "${topic}". Количество слайдов: ${slidesCount}. Язык: ${language}.`
+      if (audience) prompt += ` Целевая аудитория: ${audience}.`
+      prompt += `\n\nДля каждого слайда верни объект с полями: title (заголовок), content (краткий текст или тезисы, 1-3 предложения). Верни ТОЛЬКО валидный JSON массив объектов без markdown. Пример: [{"title":"...","content":"..."}]. Текст на языке ${language}.`
+    } else {
+      prompt = `Создай структуру презентации на тему: "${topic}"`
+      if (audience) prompt += `\nЦелевая аудитория: ${audience}`
+      prompt += `\nКоличество слайдов: ${slidesCount}`
+      prompt += `\nСтиль презентации: ${style}`
+      prompt += `\nЯзык: ${language}`
+      if (includeImages && imageType !== 'none') prompt += `\nТип изображений: ${imageType}`
+      prompt += `\n\nДля каждого слайда верни объект с полями:
 - type: "title" | "content" | "image" | "split"
 - title: заголовок слайда
 - content: текст слайда (если применимо)
-${includeImages && imageType !== 'none' ? '- imageDescription: краткое описание картинки для слайда на английском (1 фраза, для генерации изображения)' : ''}
+${includeImages && imageType !== 'none' ? '- imageDescription: краткое описание картинки для слайда на английском (1 фраза)' : ''}
 
-Верни ТОЛЬКО валидный JSON массив объектов без markdown, без пояснений. Пример элемента: {"type":"content","title":"...","content":"..."${includeImages && imageType !== 'none' ? ',"imageDescription":"..."' : ''}}.
-
-Важно: текст заголовков и content — на языке ${language}.`
+Верни ТОЛЬКО валидный JSON массив объектов без markdown. Пример: {"type":"content","title":"...","content":"..."${includeImages && imageType !== 'none' ? ',"imageDescription":"..."' : ''}}.
+Текст на языке ${language}.`
+    }
 
     const accessToken = await getGigaChatAccessToken()
 
