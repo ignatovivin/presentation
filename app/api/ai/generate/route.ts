@@ -494,7 +494,9 @@ ${includeImages && imageType !== 'none' ? '- imageDescription: краткое о
       return null
     }
 
-    let jsonText = extractJsonArray(cleanedText) ?? (cleanedText.match(/\[[\s\S]*\]/)?.[0] ?? '').trim() || cleanedText
+    const extracted = extractJsonArray(cleanedText)
+    const fallbackMatch = cleanedText.match(/\[[\s\S]*\]/)?.[0]?.trim() ?? ''
+    const jsonText = (extracted ?? fallbackMatch) || cleanedText
 
     if (!jsonText || jsonText.trim() === '') {
       console.error('Не удалось найти JSON в ответе:', cleanedText.substring(0, 500))
