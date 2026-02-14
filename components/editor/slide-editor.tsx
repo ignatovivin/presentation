@@ -77,6 +77,7 @@ export function SlideEditor({ slide, onUpdate, onDelete }: SlideEditorProps) {
     if (editor && slide.content !== editor.getHTML()) {
       editor.commands.setContent(slide.content || '')
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- синхронизируем только при смене слайда, не при каждом изменении slide.content
   }, [slide.id, editor])
 
   useEffect(() => {
@@ -140,12 +141,11 @@ export function SlideEditor({ slide, onUpdate, onDelete }: SlideEditorProps) {
       <div className="min-h-0 overflow-visible grid grid-cols-1 grid-rows-1">
         <div
           ref={blockRef}
-          style={{ display: 'flex', flexDirection: 'column' }}
+          style={{ display: 'flex', flexDirection: 'column', padding: 'clamp(24px, 5%, 48px)' }}
           className={cn(
             'group relative flex-1 min-h-0 cursor-pointer rounded-xl transition-[box-shadow] overflow-visible bg-transparent',
             menuOpen && menuMode === 'block' && 'shadow-[0_0_0_4px_rgb(52,137,243)]'
           )}
-          style={{ padding: 'clamp(24px, 5%, 48px)' }}
           onClick={(e) => {
             const target = e.target as HTMLElement
             if (target.closest('input') || target.closest('[contenteditable="true"]') || target.closest('[data-unified-menu]')) return
@@ -188,6 +188,7 @@ export function SlideEditor({ slide, onUpdate, onDelete }: SlideEditorProps) {
               >
                 {slide.imageUrl && slide.imageUrl.startsWith('http') && (
                   <div className="relative mb-4 flex-shrink-0">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={slide.imageUrl}
                       alt={slide.title || 'Slide image'}

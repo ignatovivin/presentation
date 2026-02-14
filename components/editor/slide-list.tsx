@@ -84,6 +84,7 @@ function SortableSlideItem({
       style={{ borderColor: 'rgba(0, 0, 0, 0.08)' }}
     >
       {slide.imageUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
         <img src={slide.imageUrl} alt="" className="w-full h-full object-cover" />
       ) : (
         <div className="w-full h-full p-1 flex flex-col justify-center overflow-hidden">

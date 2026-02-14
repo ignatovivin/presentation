@@ -194,7 +194,7 @@ export default function EditorPage() {
       isGeneratingRef.current = false
       setIsGenerating(false)
     }
-  }, [])
+  }, [router])
 
   useEffect(() => {
     // Все значения с главного экрана: промпт, количество слайдов (slides-count), настройки AI (ai-settings)
@@ -287,7 +287,7 @@ export default function EditorPage() {
     if (currentPresentation && currentPresentation.slides.length > 0 && !currentSlideId) {
       setCurrentSlideId(currentPresentation.slides[0].id)
     }
-  }, [currentPresentation, currentSlideId, createPresentation, generateSlidesFromPrompt])
+  }, [currentPresentation, currentSlideId, createPresentation, generateSlidesFromPrompt, router])
 
   const currentSlide = currentPresentation?.slides.find(
     (s) => s.id === currentSlideId

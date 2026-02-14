@@ -84,6 +84,7 @@ export default function PresentPage() {
               className="flex flex-col items-center justify-center p-16"
             >
               {slide.imageUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={slide.imageUrl}
                   alt={slide.title || 'Slide image'}

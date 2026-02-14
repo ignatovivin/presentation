@@ -19,20 +19,21 @@ export default function GeneratingPage() {
   const timersRef = useRef<{ progress?: ReturnType<typeof setInterval>; step?: ReturnType<typeof setInterval>; nav?: ReturnType<typeof setTimeout> }>({})
 
   useEffect(() => {
-    timersRef.current.progress = setInterval(() => {
+    const timers = timersRef.current
+    timers.progress = setInterval(() => {
       setProgress((prev) => (prev >= 100 ? 100 : prev + 2))
     }, 100)
 
-    timersRef.current.step = setInterval(() => {
+    timers.step = setInterval(() => {
       setCurrentStep((prev) => (prev >= GENERATION_STEPS.length - 1 ? prev : prev + 1))
     }, 1500)
 
-    timersRef.current.nav = setTimeout(() => router.push('/editor'), 7500)
+    timers.nav = setTimeout(() => router.push('/editor'), 7500)
 
     return () => {
-      if (timersRef.current.progress) clearInterval(timersRef.current.progress)
-      if (timersRef.current.step) clearInterval(timersRef.current.step)
-      if (timersRef.current.nav) clearTimeout(timersRef.current.nav)
+      if (timers.progress) clearInterval(timers.progress)
+      if (timers.step) clearInterval(timers.step)
+      if (timers.nav) clearTimeout(timers.nav)
     }
   }, [router])
 
