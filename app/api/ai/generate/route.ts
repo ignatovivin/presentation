@@ -548,18 +548,17 @@ ${includeImages && imageType !== 'none' ? '- imageDescription: краткое о
       return JSON.parse(fixed.join(''))
     }
 
-    // Убираем возможный мусор в конце (точки, пояснения после массива)
-    jsonText = jsonText.trim()
+    const jsonTextTrimmed = jsonText.trim()
 
     let slides: any
     try {
-      slides = JSON.parse(jsonText)
+      slides = JSON.parse(jsonTextTrimmed)
     } catch {
       try {
-        slides = tryParseJson(jsonText)
+        slides = tryParseJson(jsonTextTrimmed)
       } catch (parseError) {
         console.error('Ошибка парсинга JSON:', parseError)
-        console.error('Текст ответа (начало):', jsonText.substring(0, 500))
+        console.error('Текст ответа (начало):', jsonTextTrimmed.substring(0, 500))
         throw new Error('Не удалось распарсить JSON из ответа AI. Попробуйте снова или упростите запрос.')
       }
     }
