@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
-import { Play } from 'lucide-react'
+import { Loader2, Play } from 'lucide-react'
 import Image from 'next/image'
 import { AIGenerator } from '@/components/editor/ai-generator'
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
@@ -16,6 +16,20 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 
+const DEFAULT_AI = { imageType: 'realistic', tone: 'professional', language: 'russian', audience: '' }
+
+function getStoredAiSettings() {
+  if (typeof window === 'undefined') return DEFAULT_AI
+  try {
+    const saved = localStorage.getItem('ai-settings')
+    if (!saved) return DEFAULT_AI
+    const p = JSON.parse(saved)
+    return { ...DEFAULT_AI, ...p }
+  } catch {
+    return DEFAULT_AI
+  }
+}
+
 const PLACEHOLDER_VARIANTS = [
   'Питч-презентация для серии A раунда...',
   'Обучающий курс по финансовой грамотности...',
@@ -26,6 +40,7 @@ export default function HomePage() {
   const router = useRouter()
   const [content, setContent] = useState('')
   const [aiDialogOpen, setAiDialogOpen] = useState(false)
+  const [loadingGenerate, setLoadingGenerate] = useState(false)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [placeholderIndex, setPlaceholderIndex] = useState(0)
   const SLIDES_COUNT_OPTIONS = [3, 5, 7, 10]
@@ -40,7 +55,7 @@ export default function HomePage() {
     if (typeof window !== 'undefined') localStorage.setItem('slides-count', String(n))
   }
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     if (!content.trim()) {
       alert('Пожалуйста, введите текст для презентации')
       return
@@ -50,7 +65,43 @@ export default function HomePage() {
       localStorage.setItem('prompt', topic)
       localStorage.setItem('slides-count', String(slidesCount))
     }
-    router.push('/outline')
+
+    setLoadingGenerate(true)
+    try {
+      const aiSettings = getStoredAiSettings()
+      const res = await fetch('/api/ai/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          topic,
+          slidesCount,
+          style: aiSettings.tone,
+          language: aiSettings.language,
+          audience: aiSettings.audience || undefined,
+          outlineOnly: true,
+        }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        const msg = data?.error || res.statusText || 'Ошибка генерации структуры'
+        throw new Error(msg)
+      }
+      const data = await res.json()
+      const slides = data.slides || []
+      const outlineCards = slides.map((s: { title?: string; content?: string }, i: number) => ({
+        id: `card-${Date.now()}-${i}`,
+        title: s.title || `Слайд ${i + 1}`,
+        content: (s.content || '').replace(/<[^>]+>/g, ' ').trim(),
+      }))
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('outline-cards', JSON.stringify(outlineCards))
+      }
+      router.push('/outline')
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Не удалось сгенерировать структуру')
+    } finally {
+      setLoadingGenerate(false)
+    }
   }
 
   const handleFilesClick = () => {
@@ -195,10 +246,14 @@ export default function HomePage() {
                 size="icon"
                 className="h-9 w-9 rounded-xl bg-[rgb(52,137,243)] hover:bg-[rgb(42,120,214)] text-white disabled:opacity-50 disabled:cursor-not-allowed"
                 onClick={handleGenerate}
-                disabled={!content.trim()}
-                title="Создать презентацию"
+                disabled={!content.trim() || loadingGenerate}
+                title={loadingGenerate ? 'Генерация структуры...' : 'Создать презентацию'}
               >
-                <Play className="h-4 w-4" />
+                {loadingGenerate ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Play className="h-4 w-4" />
+                )}
               </Button>
             </div>
           </div>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { usePresentationStore } from '@/store/presentation-store'
 import { Button } from '@/components/ui/button'
@@ -23,7 +23,7 @@ import {
 } from '@dnd-kit/core'
 import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { ArrowLeft, Check, Edit3, FileText, GripVertical, Loader2, Play, Plus } from 'lucide-react'
+import { ArrowDown, ArrowLeft, ArrowUp, Check, Edit3, FileText, GripVertical, Loader2, Play, Plus, Sparkles, Trash2 } from 'lucide-react'
 
 const SLIDES_COUNT_OPTIONS = [3, 5, 7, 10]
 
@@ -62,10 +62,12 @@ function CardItem({
   card,
   onTitleChange,
   onContentChange,
+  onContextMenu: onContextMenuProp,
 }: {
   card: OutlineCard
   onTitleChange: (v: string) => void
   onContentChange: (v: string) => void
+  onContextMenu?: (e: React.MouseEvent) => void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: card.id })
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 }
@@ -75,6 +77,7 @@ function CardItem({
       ref={setNodeRef}
       style={style}
       className="flex gap-3 p-4 rounded-xl bg-white border border-gray-200 hover:border-gray-300 transition-colors"
+      onContextMenu={onContextMenuProp}
     >
       <button type="button" className="touch-none cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 shrink-0 mt-1" {...attributes} {...listeners}>
         <GripVertical className="h-5 w-5" />
@@ -108,6 +111,20 @@ export default function OutlinePage() {
   const [aiSettings, setAiSettings] = useState(DEFAULT_AI)
   const [cards, setCards] = useState<OutlineCard[]>([])
   const [loadingOutline, setLoadingOutline] = useState(false)
+  const [contextMenu, setContextMenu] = useState<{ cardId: string; x: number; y: number } | null>(null)
+  const [loadingCardId, setLoadingCardId] = useState<string | null>(null)
+  const contextMenuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!contextMenu) return
+    const close = (e: MouseEvent) => {
+      if (contextMenuRef.current && !contextMenuRef.current.contains(e.target as Node)) {
+        setContextMenu(null)
+      }
+    }
+    document.addEventListener('mousedown', close)
+    return () => document.removeEventListener('mousedown', close)
+  }, [contextMenu])
 
   useEffect(() => {
     setTopic(getStored('prompt', ''))
@@ -196,6 +213,72 @@ export default function OutlinePage() {
 
   const addCard = () => {
     setCards((prev) => [...prev, { id: `card-${Date.now()}`, title: '', content: '' }])
+  }
+
+  const deleteCard = (id: string) => {
+    setContextMenu(null)
+    setCards((prev) => prev.filter((c) => c.id !== id))
+  }
+
+  const moveCardUp = (id: string) => {
+    setContextMenu(null)
+    setCards((prev) => {
+      const i = prev.findIndex((c) => c.id === id)
+      if (i <= 0) return prev
+      return arrayMove(prev, i, i - 1)
+    })
+  }
+
+  const moveCardDown = (id: string) => {
+    setContextMenu(null)
+    setCards((prev) => {
+      const i = prev.findIndex((c) => c.id === id)
+      if (i === -1 || i >= prev.length - 1) return prev
+      return arrayMove(prev, i, i + 1)
+    })
+  }
+
+  const regenerateCardContent = async (id: string) => {
+    const card = cards.find((c) => c.id === id)
+    if (!card) return
+    if (!topic.trim()) {
+      alert('Введите тему презентации в поле выше для контекста генерации')
+      setContextMenu(null)
+      return
+    }
+    setContextMenu(null)
+    setLoadingCardId(id)
+    try {
+      const res = await fetch('/api/ai/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          topic: `${topic.trim()}. Слайд: ${card.title || 'без названия'}. ${(card.content || '').slice(0, 150)}`,
+          slidesCount: 1,
+          style: aiSettings.tone,
+          language: aiSettings.language,
+          audience: aiSettings.audience || undefined,
+          outlineOnly: true,
+        }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data?.error || res.statusText || 'Ошибка генерации')
+      }
+      const data = await res.json()
+      const slides = data.slides || []
+      const first = slides[0]
+      if (first) {
+        updateCard(id, {
+          title: first.title || card.title,
+          content: (first.content || '').replace(/<[^>]+>/g, ' ').trim() || card.content,
+        })
+      }
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Не удалось сгенерировать текст')
+    } finally {
+      setLoadingCardId(null)
+    }
   }
 
   const handleGenerate = () => {
@@ -340,9 +423,58 @@ export default function OutlinePage() {
                     card={card}
                     onTitleChange={(v) => updateCard(card.id, { title: v })}
                     onContentChange={(v) => updateCard(card.id, { content: v })}
+                    onContextMenu={(e) => {
+                      e.preventDefault()
+                      setContextMenu({ cardId: card.id, x: e.clientX, y: e.clientY })
+                    }}
                   />
                 ))}
               </div>
+              {contextMenu && (
+                <div
+                  ref={contextMenuRef}
+                  className="fixed z-50 min-w-[200px] rounded-xl border border-gray-200 bg-white py-1 shadow-lg"
+                  style={{ left: contextMenu.x, top: contextMenu.y }}
+                >
+                  <button
+                    type="button"
+                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
+                    onClick={() => deleteCard(contextMenu.cardId)}
+                  >
+                    <Trash2 className="h-4 w-4 text-red-500" />
+                    Удалить карточку
+                  </button>
+                  <button
+                    type="button"
+                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
+                    onClick={() => moveCardUp(contextMenu.cardId)}
+                  >
+                    <ArrowUp className="h-4 w-4" />
+                    Поднять выше
+                  </button>
+                  <button
+                    type="button"
+                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
+                    onClick={() => moveCardDown(contextMenu.cardId)}
+                  >
+                    <ArrowDown className="h-4 w-4" />
+                    Опустить ниже
+                  </button>
+                  <button
+                    type="button"
+                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 disabled:opacity-50"
+                    onClick={() => regenerateCardContent(contextMenu.cardId)}
+                    disabled={loadingCardId === contextMenu.cardId}
+                  >
+                    {loadingCardId === contextMenu.cardId ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-4 w-4 text-amber-500" />
+                    )}
+                    {loadingCardId === contextMenu.cardId ? 'Генерация...' : 'Сгенерировать новый текст'}
+                  </button>
+                </div>
+              )}
             </SortableContext>
           </DndContext>
           <Button type="button" variant="outline" className="mt-4 w-full rounded-xl border-dashed border-gray-300 text-gray-600 hover:bg-gray-50" onClick={addCard}>
