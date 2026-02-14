@@ -71,35 +71,38 @@ function CardItem({
   onContextMenu?: (e: React.MouseEvent) => void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: card.id })
-  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 }
+  const dragStyle = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 }
 
   return (
-    <motion.div
-      layout
-      transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+    <div
       ref={setNodeRef}
-      style={style}
-      className="flex gap-3 p-8 rounded-xl bg-white border border-[rgba(0,0,0,0.08)] transition-all duration-300 ease-in-out focus-within:shadow-[rgba(0,0,0,0.08)_0px_16px_32px] focus-within:-translate-y-0.5 focus-within:border-gray-300"
+      style={dragStyle}
       onContextMenu={onContextMenuProp}
     >
-      <button type="button" className="touch-none cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 shrink-0 mt-1" {...attributes} {...listeners}>
-        <GripVertical className="h-5 w-5" />
-      </button>
-      <div className="flex-1 min-w-0 space-y-2">
-        <Input
-          value={card.title}
-          onChange={(e) => onTitleChange(e.target.value)}
-          placeholder="Заголовок слайда"
-          className="font-medium border-gray-200 rounded-lg focus-visible:ring-0 focus-visible:ring-offset-0"
-        />
-        <Textarea
-          value={card.content}
-          onChange={(e) => onContentChange(e.target.value)}
-          placeholder="Текст или тезисы"
-          className="min-h-[80px] resize-none border-gray-200 rounded-lg text-sm focus-visible:ring-0 focus-visible:ring-offset-0"
-        />
-      </div>
-    </motion.div>
+      <motion.div
+        layout
+        transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+        className="outline-card-focus flex gap-3 p-2 rounded-xl bg-white border border-[rgba(0,0,0,0.08)] transition-all duration-300 ease-in-out focus-within:border-gray-300"
+      >
+        <button type="button" className="touch-none cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 shrink-0 mt-1" {...attributes} {...listeners}>
+          <GripVertical className="h-5 w-5" />
+        </button>
+        <div className="flex-1 min-w-0 space-y-2">
+          <Input
+            value={card.title}
+            onChange={(e) => onTitleChange(e.target.value)}
+            placeholder="Заголовок слайда"
+            className="font-medium border-gray-200 rounded-lg focus-visible:ring-0 focus-visible:ring-offset-0"
+          />
+          <Textarea
+            value={card.content}
+            onChange={(e) => onContentChange(e.target.value)}
+            placeholder="Текст или тезисы"
+            className="min-h-[80px] resize-none border-gray-200 rounded-lg text-sm focus-visible:ring-0 focus-visible:ring-offset-0"
+          />
+        </div>
+      </motion.div>
+    </div>
   )
 }
 
@@ -369,6 +372,16 @@ export default function OutlinePage() {
 
   return (
     <div className="min-h-screen bg-[#fafafa] flex flex-col">
+      <style dangerouslySetInnerHTML={{ __html: `
+        .outline-card-focus:focus-within {
+          box-shadow: rgba(0, 0, 0, 0.08) 0px 16px 32px;
+          transform: translateY(-2px);
+        }
+        .outline-textarea-focus:focus-within {
+          box-shadow: rgba(0, 0, 0, 0.08) 0px 16px 32px;
+          transform: translateY(-2px);
+        }
+      ` }} />
       <header className="border-b border-gray-200 bg-white px-4 py-3">
         <Button variant="ghost" size="sm" className="gap-2 text-gray-600" onClick={() => router.push('/')}>
           <ArrowLeft className="h-4 w-4" />
@@ -383,7 +396,7 @@ export default function OutlinePage() {
         <section className="mb-8">
           <label className="text-sm font-medium text-gray-900 mb-1 block">Тема (для перегенерации контента)</label>
           <div
-            className="rounded-2xl border bg-white mb-3 transition-all duration-300 ease-in-out focus-within:shadow-[rgba(0,0,0,0.08)_0px_16px_32px] focus-within:-translate-y-0.5"
+            className="outline-textarea-focus rounded-2xl border bg-white mb-3 transition-all duration-300 ease-in-out"
             style={{ borderColor: 'rgba(0, 0, 0, 0.08)' }}
           >
             <Textarea
