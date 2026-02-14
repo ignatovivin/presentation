@@ -462,15 +462,39 @@ ${includeImages && imageType !== 'none' ? '- imageDescription: краткое о
 
     // Clean up the response (remove markdown code blocks if present)
     let cleanedText = text.trim()
-    if (cleanedText.startsWith('```json')) {
-      cleanedText = cleanedText.replace(/```json\n?/g, '').replace(/```\n?/g, '')
-    } else if (cleanedText.startsWith('```')) {
-      cleanedText = cleanedText.replace(/```\n?/g, '')
+    cleanedText = cleanedText.replace(/^\s*```(?:json)?\s*/i, '').replace(/\s*```\s*$/g, '')
+    cleanedText = cleanedText.replace(/\uFEFF/g, '').trim() // BOM
+
+    /** Извлекает подстроку от первого '[' до парной ']' (учёт вложенных скобок). */
+    function extractJsonArray(str: string): string | null {
+      const start = str.indexOf('[')
+      if (start === -1) return null
+      let depth = 0
+      let inString = false
+      let quote = ''
+      for (let i = start; i < str.length; i++) {
+        const c = str[i]
+        if (!inString) {
+          if (c === '[') depth++
+          else if (c === ']') {
+            depth--
+            if (depth === 0) return str.slice(start, i + 1)
+          } else if (c === '"' || c === "'") {
+            inString = true
+            quote = c
+          }
+          continue
+        }
+        if (c === '\\' && i + 1 < str.length) {
+          i++
+          continue
+        }
+        if (c === quote) inString = false
+      }
+      return null
     }
 
-    // Пытаемся найти JSON в ответе
-    const jsonMatch = cleanedText.match(/\[[\s\S]*\]/)
-    let jsonText = jsonMatch ? jsonMatch[0] : cleanedText
+    let jsonText = extractJsonArray(cleanedText) ?? (cleanedText.match(/\[[\s\S]*\]/)?.[0] ?? '').trim() || cleanedText
 
     if (!jsonText || jsonText.trim() === '') {
       console.error('Не удалось найти JSON в ответе:', cleanedText.substring(0, 500))
@@ -522,6 +546,9 @@ ${includeImages && imageType !== 'none' ? '- imageDescription: краткое о
       return JSON.parse(fixed.join(''))
     }
 
+    // Убираем возможный мусор в конце (точки, пояснения после массива)
+    jsonText = jsonText.trim()
+
     let slides: any
     try {
       slides = JSON.parse(jsonText)
@@ -530,8 +557,8 @@ ${includeImages && imageType !== 'none' ? '- imageDescription: краткое о
         slides = tryParseJson(jsonText)
       } catch (parseError) {
         console.error('Ошибка парсинга JSON:', parseError)
-        console.error('Текст ответа:', jsonText.substring(0, 500))
-        throw new Error(`Не удалось распарсить JSON из ответа AI. Проверьте, что модель возвращает только валидный JSON-массив.`)
+        console.error('Текст ответа (начало):', jsonText.substring(0, 500))
+        throw new Error('Не удалось распарсить JSON из ответа AI. Попробуйте снова или упростите запрос.')
       }
     }
 
