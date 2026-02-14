@@ -77,12 +77,13 @@ function CardItem({
     <div
       ref={setNodeRef}
       style={dragStyle}
+      className="mb-2"
       onContextMenu={onContextMenuProp}
     >
       <motion.div
         layout
         transition={{ type: 'spring', stiffness: 350, damping: 30 }}
-        className="outline-card-focus flex gap-3 p-2 rounded-xl bg-white border border-[rgba(0,0,0,0.08)] transition-all duration-300 ease-in-out focus-within:border-gray-300"
+        className="outline-card-focus flex gap-3 p-2 rounded-xl bg-white border border-[rgba(0,0,0,0.08)] transition-all duration-300 ease-in-out focus-within:border-gray-300 opacity-100"
       >
         <button type="button" className="touch-none cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 shrink-0 mt-1" {...attributes} {...listeners}>
           <GripVertical className="h-5 w-5" />
@@ -438,7 +439,7 @@ export default function OutlinePage() {
           </div>
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
             <SortableContext items={cards.map((c) => c.id)} strategy={verticalListSortingStrategy}>
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {cards.map((card) => (
                   <CardItem
                     key={card.id}
@@ -455,43 +456,43 @@ export default function OutlinePage() {
               {contextMenu && (
                 <div
                   ref={contextMenuRef}
-                  className="fixed z-50 min-w-[200px] rounded-xl border border-gray-200 bg-white py-1 shadow-lg"
+                  className="fixed z-50 min-w-[8rem] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md"
                   style={{ left: contextMenu.x, top: contextMenu.y }}
                 >
                   <button
                     type="button"
-                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
+                    className="relative flex w-full cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
                     onClick={() => deleteCard(contextMenu.cardId)}
                   >
-                    <Trash2 className="h-4 w-4 text-red-500" />
+                    <Trash2 className="h-4 w-4 shrink-0 text-red-500" />
                     Удалить карточку
                   </button>
                   <button
                     type="button"
-                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
+                    className="relative flex w-full cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
                     onClick={() => moveCardUp(contextMenu.cardId)}
                   >
-                    <ArrowUp className="h-4 w-4" />
+                    <ArrowUp className="h-4 w-4 shrink-0" />
                     Поднять выше
                   </button>
                   <button
                     type="button"
-                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
+                    className="relative flex w-full cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
                     onClick={() => moveCardDown(contextMenu.cardId)}
                   >
-                    <ArrowDown className="h-4 w-4" />
+                    <ArrowDown className="h-4 w-4 shrink-0" />
                     Опустить ниже
                   </button>
                   <button
                     type="button"
-                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 disabled:opacity-50"
+                    className="relative flex w-full cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground disabled:pointer-events-none disabled:opacity-50"
                     onClick={() => regenerateCardContent(contextMenu.cardId)}
                     disabled={loadingCardId === contextMenu.cardId}
                   >
                     {loadingCardId === contextMenu.cardId ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
                     ) : (
-                      <Sparkles className="h-4 w-4 text-amber-500" />
+                      <Sparkles className="h-4 w-4 shrink-0 text-amber-500" />
                     )}
                     {loadingCardId === contextMenu.cardId ? 'Генерация...' : 'Сгенерировать новый текст'}
                   </button>
