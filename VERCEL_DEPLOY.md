@@ -70,6 +70,15 @@
 - Проверьте логи билда в Vercel Dashboard
 - Убедитесь, что `yarn build` выполняется успешно локально
 
+### POST `/api/ai/generate` возвращает 500 (Internal Server Error)
+Чаще всего причина — **не задан ключ GigaChat на Vercel**:
+1. Vercel → ваш проект → **Settings** → **Environment Variables**
+2. Добавьте **GIGACHAT_AUTH_KEY** (значение — Base64 ключ из личного кабинета Sber) для окружения **Production** (и при необходимости Preview).
+3. Сохраните и сделайте **Redeploy** (Deployments → … → Redeploy), иначе старый билд продолжит работать без переменных.
+4. В браузере при 500 в алерте должно показываться сообщение с сервера (например: «GIGACHAT_AUTH_KEY не настроен»). Если видите его — добавьте переменную и переразверните.
+
+Сообщение в консоли вида `Unchecked runtime.lastError: Could not establish connection. Receiving end does not exist` обычно от расширения браузера (например React DevTools), не от приложения — его можно игнорировать.
+
 ### Ошибка с GigaChat API
 - Проверьте правильность `GIGACHAT_AUTH_KEY`
 - Убедитесь, что `GIGACHAT_SCOPE` соответствует вашему типу аккаунта

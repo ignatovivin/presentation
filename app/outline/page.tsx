@@ -158,7 +158,8 @@ export default function OutlinePage() {
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
-        throw new Error(data.error || 'Ошибка генерации структуры')
+        const msg = data?.error || res.statusText || 'Ошибка генерации структуры'
+        throw new Error(msg)
       }
       const data = await res.json()
       const slides = data.slides || []
