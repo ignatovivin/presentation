@@ -422,7 +422,7 @@ export default function OutlinePage() {
               )}
             </SortableContext>
           </DndContext>
-          <Button type="button" variant="outline" className="mt-4 w-full rounded-xl border-dashed border-gray-300 text-gray-600 hover:bg-gray-50" onClick={addCard}>
+          <Button type="button" variant="outline" className="mt-2 w-full rounded-xl border-dashed border-gray-300 text-gray-600 hover:bg-gray-50" onClick={addCard}>
             <Plus className="h-4 w-4 mr-2" />
             Добавить карточку
           </Button>
@@ -430,14 +430,16 @@ export default function OutlinePage() {
 
         <section className="mb-8">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Визуальный шаблон</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
             {TEMPLATES.map((t) => (
               <button
                 key={t.id}
                 type="button"
                 onClick={() => setSelectedTemplate(t.id)}
-                className={`relative p-4 rounded-xl border-2 text-left transition-all hover:scale-[1.02] ${
-                  selectedTemplate === t.id ? 'border-[rgb(52,137,243)] bg-blue-50 shadow-md' : 'border-gray-200 bg-white hover:border-gray-300'
+                className={`relative p-4 rounded-xl border text-left transition-all duration-300 ease-in-out hover:border-gray-300 ${
+                  selectedTemplate === t.id
+                    ? 'border-[rgb(52,137,243)] bg-blue-50'
+                    : 'border-[rgba(0,0,0,0.08)] bg-white'
                 }`}
               >
                 <div className="flex gap-0.5 mb-3 rounded-lg overflow-hidden">
@@ -459,7 +461,7 @@ export default function OutlinePage() {
 
         <section className="space-y-4">
           <h2 className="text-lg font-semibold text-gray-900">Настройки</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
             <div>
               <label className="text-sm font-medium text-gray-700 mb-1 block">Тон</label>
               <Select value={aiSettings.tone} onValueChange={(v) => setAiSettings((s) => ({ ...s, tone: v }))}>
@@ -489,15 +491,15 @@ export default function OutlinePage() {
                 </SelectContent>
               </Select>
             </div>
-          </div>
-          <div>
-            <label className="text-sm font-medium text-gray-700 mb-1 block">Аудитория</label>
-            <Input
-              value={aiSettings.audience}
-              onChange={(e) => setAiSettings((s) => ({ ...s, audience: e.target.value }))}
-              placeholder="Необязательно"
-              className="rounded-xl border-gray-200 bg-white"
-            />
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-1 block">Аудитория</label>
+              <Input
+                value={aiSettings.audience}
+                onChange={(e) => setAiSettings((s) => ({ ...s, audience: e.target.value }))}
+                placeholder="Необязательно"
+                className="rounded-xl border-gray-200 bg-white"
+              />
+            </div>
           </div>
         </section>
       </main>
