@@ -228,6 +228,7 @@ export default function EditorPage() {
       const title = (prompt || '').length > 50 ? (prompt || '').substring(0, 50) + '...' : (prompt || 'Презентация')
 
       if (outlineCards.length > 0) {
+        hasGeneratedRef.current = true
         createPresentation(title, templateId || undefined)
         setTimeout(() => {
           const store = usePresentationStore.getState()
@@ -425,34 +426,48 @@ export default function EditorPage() {
                   <>
                     {isFintech && templateStyle && (
                       <style dangerouslySetInnerHTML={{ __html: `
-                        .editor-slide-canvas-fintech {
+                        /* Стили шаблона — только для контента слайда, не для header/sidebar/кнопок */
+                        [data-editor-presentation-block].editor-slide-canvas-fintech {
                           background: var(--slide-bg) !important;
                           color: var(--slide-text) !important;
                           font-family: ${fontFamily} !important;
                           padding: var(--padding-medium) var(--padding-large) !important;
                           text-align: left !important;
                         }
-                        .editor-slide-canvas-fintech [data-slide-title],
-                        .editor-slide-canvas-fintech [data-slide-title] input {
+                        [data-editor-presentation-block].editor-slide-canvas-fintech [data-slide-title],
+                        [data-editor-presentation-block].editor-slide-canvas-fintech [data-slide-title] input {
                           font-size: var(--heading-size) !important;
                           font-weight: 700 !important;
                           color: var(--slide-text) !important;
                           margin-bottom: var(--spacing) !important;
                         }
-                        .editor-slide-canvas-fintech .ProseMirror,
-                        .editor-slide-canvas-fintech .ProseMirror * {
+                        [data-editor-presentation-block].editor-slide-canvas-fintech .ProseMirror,
+                        [data-editor-presentation-block].editor-slide-canvas-fintech .ProseMirror * {
                           font-size: var(--body-size) !important;
                           color: var(--slide-text) !important;
                           line-height: 1.5 !important;
                         }
-                        .editor-slide-canvas-fintech img {
+                        [data-editor-presentation-block].editor-slide-canvas-fintech img {
                           border-radius: var(--card-radius) !important;
                           box-shadow: var(--card-shadow) !important;
+                        }
+                        /* Всплывающие меню — сброс стилей шаблона, обычный UI */
+                        [data-editor-presentation-block].editor-slide-canvas-fintech [data-unified-menu],
+                        [data-editor-presentation-block].editor-slide-canvas-fintech [data-unified-menu] * {
+                          color: #171717 !important;
+                          font-size: 14px !important;
+                          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+                          line-height: normal !important;
+                          font-weight: normal !important;
+                        }
+                        [data-editor-presentation-block].editor-slide-canvas-fintech [data-unified-menu] button {
+                          font-size: 14px !important;
                         }
                       ` }} />
                     )}
                     <div
                       className={canvasClass}
+                      data-editor-presentation-block
                       data-template={templateId || undefined}
                       style={canvasStyle}
                     >
