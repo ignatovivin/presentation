@@ -5,6 +5,7 @@ import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import type { Slide, ContentAlign, VerticalAlign } from '@/lib/types'
+import type { TemplateStyle } from '@/lib/templates'
 import { Move } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { AlignmentToolbar } from './alignment-toolbar'
@@ -15,6 +16,9 @@ interface SlideEditorProps {
   slide: Slide
   onUpdate: (updates: Partial<Slide>) => void
   onDelete: () => void
+  /** Шаблон презентации (B2B и др.) — значения передаются на редактирование слайда */
+  templateId?: string
+  templateStyle?: TemplateStyle | null
 }
 
 const contentAlignClass: Record<ContentAlign, string> = {
@@ -33,7 +37,7 @@ const TITLE_DEFAULT = { x: 24, y: 24 }
 const BODY_DEFAULT = { x: 24, y: 96 }
 const IMAGE_DEFAULT = { x: 24, y: 280 }
 
-export function SlideEditor({ slide, onUpdate, onDelete }: SlideEditorProps) {
+export function SlideEditor({ slide, onUpdate, onDelete, templateId, templateStyle }: SlideEditorProps) {
   /** Одно меню: режим зависит от того, куда нажали — блок или текст */
   const [menuOpen, setMenuOpen] = useState(false)
   const [menuMode, setMenuMode] = useState<'block' | 'text'>('block')
@@ -210,6 +214,7 @@ export function SlideEditor({ slide, onUpdate, onDelete }: SlideEditorProps) {
     <div
       ref={slideWrapRef}
       data-slide-surface
+      data-template={templateId}
       className={cn(
         'w-full h-full bg-white grid grid-cols-1 grid-rows-[0_1fr] overflow-visible rounded-[32px]',
         !menuOpen && 'hover:shadow-[inset_0_0_0_2px_rgb(203,213,225)]',

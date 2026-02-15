@@ -450,6 +450,8 @@ export default function EditorPage() {
                 const templateId = currentPresentation?.templateId
                 const isFintech = templateId === 'fintech-corporate'
                 const templateStyle = getTemplateStyle(templateId)
+                const sortedSlides = [...(currentPresentation?.slides ?? [])].sort((a, b) => a.order - b.order)
+                const isTitleSlide = currentSlide && sortedSlides[0]?.id === currentSlide.id
                 const canvasClass = 'editor-slide-canvas-wrap overflow-hidden rounded-[32px] shrink-0 ' + (isFintech ? 'editor-slide-canvas editor-slide-canvas-fintech' : 'bg-white')
                 const canvasStyle = isFintech && templateStyle
                   ? (Object.fromEntries(
@@ -461,7 +463,7 @@ export default function EditorPage() {
                   <>
                     {isFintech && templateStyle && (
                       <style dangerouslySetInnerHTML={{ __html: `
-                        /* Стили шаблона — ТОЛЬКО визуал слайда и отображение текста. Не затрагивают меню, иконки перемещения, ховеры, активные состояния. */
+                        /* Стили шаблона B2B — только визуал слайда и текст. Титульный = первый слайд. */
                         [data-editor-presentation-block].editor-slide-canvas-fintech [data-slide-surface] {
                           background: var(--slide-bg) !important;
                           padding: var(--padding-medium) var(--padding-large) !important;
@@ -485,6 +487,16 @@ export default function EditorPage() {
                           border-radius: var(--card-radius) !important;
                           box-shadow: var(--card-shadow) !important;
                         }
+                        /* Титульный слайд (первый) — фон и цвет текста из шаблона B2B, правила после общих чтобы перекрыть */
+                        [data-editor-presentation-block].editor-slide-canvas-fintech[data-slide-type="title"] [data-slide-surface] {
+                          background: var(--slide-bg-title) !important;
+                        }
+                        [data-editor-presentation-block].editor-slide-canvas-fintech[data-slide-type="title"] [data-slide-surface] [data-slide-title],
+                        [data-editor-presentation-block].editor-slide-canvas-fintech[data-slide-type="title"] [data-slide-surface] [data-slide-title] input,
+                        [data-editor-presentation-block].editor-slide-canvas-fintech[data-slide-type="title"] [data-slide-surface] .ProseMirror,
+                        [data-editor-presentation-block].editor-slide-canvas-fintech[data-slide-type="title"] [data-slide-surface] .ProseMirror * {
+                          color: var(--title-slide-text, var(--slide-text-white)) !important;
+                        }
                         /* Меню и иконки перемещения — шаблон не должен их переопределять */
                         [data-editor-presentation-block] [data-unified-menu],
                         [data-editor-presentation-block] [data-unified-menu] * {
@@ -505,12 +517,15 @@ export default function EditorPage() {
                       className={canvasClass}
                       data-editor-presentation-block
                       data-template={templateId || undefined}
+                      data-slide-type={isTitleSlide ? 'title' : currentSlide?.type}
                       style={canvasStyle}
                     >
                       <SlideEditor
                         slide={currentSlide}
                         onUpdate={handleSlideUpdate}
                         onDelete={handleSlideDelete}
+                        templateId={templateId}
+                        templateStyle={templateStyle}
                       />
                     </div>
                   </>

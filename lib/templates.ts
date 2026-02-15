@@ -18,23 +18,29 @@ export interface TemplateStyle {
   fonts?: { heading: string; body: string }
 }
 
-/** Финтех корпоратив — первый шаблон в списке */
+/** Финтех корпоратив (B2B) — по теме PowerPoint: theme1.xml, титульный слайд = slide2.xml, контент = slide3.xml */
 export const fintechCorporateTemplate: TemplateStyle = {
   id: 'fintech-corporate',
   name: 'Финтех Корпоратив',
-  description: 'Профессиональный стиль для B2B финтех презентаций с акцентом на доверие',
+  description: 'B2B стиль по PowerPoint: синяя палитра, Mont, титульный слайд по slide2.xml',
   fonts: {
-    heading: 'Arial, Helvetica, sans-serif',
-    body: 'Arial, Helvetica, sans-serif',
+    heading: '"Mont SemiBold", "Mont-SemiBold", Arial, sans-serif',
+    body: '"Mont Regular", "Mont-Regular", Arial, sans-serif',
   },
   cssVars: {
     '--slide-bg': '#FFFFFF',
     '--slide-bg-dark': '#081C4F',
+    '--slide-bg-title': 'url(/templates/fintech-title-bg.png) center/cover no-repeat',
+    '--title-slide-text': '#FFFFFF',
+    '--title-slide-subtitle': '#081C4F',
     '--slide-text': '#081C4F',
     '--slide-text-secondary': '#758899',
     '--slide-text-white': '#FFFFFF',
-    '--slide-accent': '#1B6FE7',
+    '--slide-accent': '#3489F3',
+    '--slide-accent-secondary': '#355BBB',
     '--slide-accent-light': '#7FB7FF',
+    '--slide-accent-pale': '#EBF3FE',
+    '--slide-card-fill': '#F5F9FE',
 
     '--heading-size': '48px',
     '--subheading-size': '36px',
@@ -43,7 +49,7 @@ export const fintechCorporateTemplate: TemplateStyle = {
 
     '--card-radius': '16px',
     '--card-shadow': '0 8px 24px rgba(8, 28, 79, 0.08)',
-    '--badge-bg': '#E8F3FF',
+    '--badge-bg': '#C6DFFF',
 
     '--padding-large': '100px',
     '--padding-medium': '80px',
@@ -58,7 +64,7 @@ export const TEMPLATES: TemplatePickerItem[] = [
     id: 'fintech-corporate',
     name: 'Финтех Корпоратив',
     description: 'B2B финтех: тёмно-синий, акценты, доверие',
-    colors: ['#081C4F', '#1B6FE7', '#7FB7FF'],
+    colors: ['#081C4F', '#3489F3', '#7FB7FF'],
   },
   { id: 'minimal', name: 'Минимализм', description: 'Чистый дизайн для бизнеса', colors: ['#FFFFFF', '#000000', '#3B82F6'] },
   { id: 'dark', name: 'Тёмная тема', description: 'Современный tech-стиль', colors: ['#0F172A', '#1E293B', '#06B6D4'] },

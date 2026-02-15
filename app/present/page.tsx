@@ -91,7 +91,7 @@ export default function PresentPage() {
             color: var(--slide-text) !important;
             text-align: left !important;
             padding: var(--padding-medium) var(--padding-large) !important;
-            font-family: Arial, Helvetica, sans-serif !important;
+            font-family: var(--font-body, Arial), Helvetica, sans-serif !important;
           }
           [data-template="fintech-corporate"] .reveal .slides section h1 {
             font-size: var(--heading-size) !important;
@@ -108,6 +108,16 @@ export default function PresentPage() {
           [data-template="fintech-corporate"] .reveal .slides section img {
             border-radius: var(--card-radius) !important;
             box-shadow: var(--card-shadow) !important;
+          }
+          /* Титульный слайд (первый) — данные шаблона B2B, правила после общих */
+          [data-template="fintech-corporate"] .reveal .slides section[data-slide-type="title"] {
+            background: var(--slide-bg-title) !important;
+            color: var(--title-slide-text, var(--slide-text-white)) !important;
+          }
+          [data-template="fintech-corporate"] .reveal .slides section[data-slide-type="title"] h1,
+          [data-template="fintech-corporate"] .reveal .slides section[data-slide-type="title"] .prose,
+          [data-template="fintech-corporate"] .reveal .slides section[data-slide-type="title"] .prose * {
+            color: var(--title-slide-text, var(--slide-text-white)) !important;
           }
         ` }} />
       )}
@@ -131,10 +141,13 @@ export default function PresentPage() {
 
       <div ref={revealRef} className="reveal">
         <div className="slides">
-          {currentPresentation.slides.map((slide) => (
+          {[...currentPresentation.slides]
+            .sort((a, b) => a.order - b.order)
+            .map((slide, index) => (
             <section
               key={slide.id}
               data-transition="slide"
+              data-slide-type={index === 0 ? 'title' : slide.type}
               className={sectionClassName}
               style={sectionStyle}
             >
