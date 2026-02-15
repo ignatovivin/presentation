@@ -236,12 +236,12 @@ export default function EditorPage() {
           const pres = store.currentPresentation
           if (pres) {
             store.deleteSlide(pres.slides[0].id)
-            outlineCards.forEach((card, i) => {
+            outlineCards.forEach((card) => {
               store.addSlide({ type: 'content', title: card.title || 'Слайд', content: card.content || '' })
             })
           }
-          if (typeof window !== 'undefined') localStorage.setItem('outline-show-result', 'true')
-          router.push('/outline')
+          const updated = usePresentationStore.getState().currentPresentation
+          if (updated?.slides.length) setCurrentSlideId(updated.slides[0].id)
         }, 100)
         return
       }

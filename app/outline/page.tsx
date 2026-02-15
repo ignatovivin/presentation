@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { usePresentationStore } from '@/store/presentation-store'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -24,7 +23,7 @@ import {
 import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { motion } from 'framer-motion'
-import { ArrowDown, ArrowLeft, ArrowUp, Check, Edit3, FileText, GripVertical, Loader2, Play, Plus, Sparkles, Trash2 } from 'lucide-react'
+import { ArrowDown, ArrowLeft, ArrowUp, Check, GripVertical, Loader2, Plus, Sparkles, Trash2 } from 'lucide-react'
 import { TEMPLATES } from '@/lib/templates'
 
 const SLIDES_COUNT_OPTIONS = [3, 5, 7, 10]
@@ -101,9 +100,6 @@ function CardItem({
 
 export default function OutlinePage() {
   const router = useRouter()
-  const currentPresentation = usePresentationStore((s) => s.currentPresentation)
-  const [showResult, setShowResult] = useState(false)
-
   const [topic, setTopic] = useState('')
   const [slidesCount, setSlidesCount] = useState(5)
   const [selectedTemplate, setSelectedTemplate] = useState('')
@@ -140,14 +136,6 @@ export default function OutlinePage() {
       }
     } catch {}
   }, [])
-
-  useEffect(() => {
-    const flag = typeof window !== 'undefined' && localStorage.getItem('outline-show-result') === 'true'
-    if (flag && currentPresentation && currentPresentation.slides.length > 0) {
-      setShowResult(true)
-      if (typeof window !== 'undefined') localStorage.removeItem('outline-show-result')
-    }
-  }, [currentPresentation])
 
   useEffect(() => {
     if (typeof window !== 'undefined' && cards.length > 0) localStorage.setItem('outline-cards', JSON.stringify(cards))
@@ -303,64 +291,6 @@ export default function OutlinePage() {
       localStorage.setItem('should-generate', 'true')
     }
     router.push('/generating')
-  }
-
-  if (showResult && currentPresentation && currentPresentation.slides.length > 0) {
-    const slides = [...currentPresentation.slides].sort((a, b) => a.order - b.order)
-    return (
-      <div className="min-h-screen bg-[#fafafa] flex flex-col">
-        <header className="border-b border-gray-200 bg-white px-4 py-3 flex items-center justify-between">
-          <Button variant="ghost" size="sm" className="gap-2 text-gray-600" onClick={() => router.push('/')}>
-            <ArrowLeft className="h-4 w-4" />
-            На главную
-          </Button>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" className="gap-2" onClick={() => router.push('/present')}>
-              <Play className="h-4 w-4" />
-              Презентация
-            </Button>
-            <Button className="gap-2 bg-[rgb(52,137,243)] hover:bg-[rgb(42,120,214)] text-white" onClick={() => router.push('/editor')}>
-              <Edit3 className="h-4 w-4" />
-              Редактировать
-            </Button>
-          </div>
-        </header>
-        <main className="flex-1 max-w-3xl mx-auto w-full p-6 md:p-8">
-          <div className="mb-8">
-            <h1 className="text-2xl font-bold text-gray-900 mb-1">{currentPresentation.title || 'Презентация без названия'}</h1>
-            <p className="text-sm text-gray-500">
-              {slides.length} {slides.length === 1 ? 'слайд' : slides.length < 5 ? 'слайда' : 'слайдов'}
-            </p>
-          </div>
-          <ul className="space-y-3">
-            {slides.map((slide, index) => (
-              <li key={slide.id} className="flex gap-4 p-4 rounded-xl bg-white border border-gray-200 hover:border-gray-300 transition-colors">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-600 font-semibold text-sm">
-                  {index + 1}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 text-gray-900 font-medium">
-                    <FileText className="h-4 w-4 shrink-0 text-gray-400" />
-                    {slide.title || 'Без заголовка'}
-                  </div>
-                  {slide.content && (
-                    <p className="mt-1 text-sm text-gray-500 line-clamp-2">
-                      {slide.content.replace(/<[^>]+>/g, ' ').trim() || '—'}
-                    </p>
-                  )}
-                </div>
-              </li>
-            ))}
-          </ul>
-          <div className="mt-8 flex justify-center">
-            <Button className="gap-2 bg-[rgb(52,137,243)] hover:bg-[rgb(42,120,214)] text-white px-8" onClick={() => router.push('/editor')}>
-              <Edit3 className="h-4 w-4" />
-              Перейти к редактированию
-            </Button>
-          </div>
-        </main>
-      </div>
-    )
   }
 
   return (
