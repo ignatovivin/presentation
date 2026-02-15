@@ -40,13 +40,10 @@ export default function EditorPage() {
   const [currentSlideId, setCurrentSlideId] = useState<string | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
   const [hasGenerated, setHasGenerated] = useState(false)
-  /** Рендер контента только после монтирования — устраняет гидрацию #418 (store/localStorage/расширения). */
+  /** Рендер контента только после монтирования — устраняет гидрацию (store/localStorage). */
   const [mounted, setMounted] = useState(false)
-  /** Размер главного блока: null = авто (адаптивно), иначе — заданный пользователем (ресайз мышью). */
-  // Используем ref для отслеживания запущенной генерации (синхронный доступ)
   const isGeneratingRef = useRef(false)
   const hasGeneratedRef = useRef(false)
-
   useEffect(() => {
     setMounted(true)
   }, [])
@@ -103,8 +100,6 @@ export default function EditorPage() {
           const errorText = await response.text()
           errorData = { error: errorText }
         }
-        console.error('Ошибка API:', response.status, errorData)
-        
         let errorMessage = 'Не удалось сгенерировать слайды'
         if (errorData.error) {
           if (errorData.error.includes('GROQ_API_KEY не настроен')) {
@@ -177,7 +172,6 @@ export default function EditorPage() {
         }
       }, 200)
     } catch (error) {
-      console.error('Ошибка генерации слайдов:', error)
       const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка'
       alert(`Ошибка генерации: ${errorMessage}`)
       // В случае ошибки создаём дефолтные слайды
@@ -390,6 +384,31 @@ export default function EditorPage() {
         </div>
       </header>
 
+      {/* Глобальный сброс размера меню — всегда компактный, независимо от шаблона */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        [data-unified-menu] {
+          font-size: 14px !important;
+          padding: 6px 12px !important;
+          min-height: unset !important;
+          box-sizing: border-box !important;
+        }
+        [data-unified-menu] * {
+          font-size: 14px !important;
+          box-sizing: border-box !important;
+        }
+        [data-unified-menu] button {
+          padding: 8px !important;
+          min-width: unset !important;
+          min-height: unset !important;
+        }
+        [data-unified-menu] button svg,
+        [data-unified-menu] img {
+          width: 16px !important;
+          height: 16px !important;
+          min-width: 16px !important;
+          min-height: 16px !important;
+        }
+      ` }} />
       {/* Main Editor — грид: колонка слайдов + центральная область */}
       <div className="flex-1 grid grid-cols-[110px_1fr] min-h-0 overflow-visible">
         <SlideList
@@ -451,17 +470,37 @@ export default function EditorPage() {
                           border-radius: var(--card-radius) !important;
                           box-shadow: var(--card-shadow) !important;
                         }
-                        /* Всплывающие меню — сброс стилей шаблона, обычный UI */
-                        [data-editor-presentation-block].editor-slide-canvas-fintech [data-unified-menu],
+                        /* Всплывающие меню — сброс стилей шаблона, компактный UI */
+                        [data-editor-presentation-block].editor-slide-canvas-fintech [data-unified-menu] {
+                          color: #171717 !important;
+                          font-size: 14px !important;
+                          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+                          line-height: normal !important;
+                          font-weight: normal !important;
+                          padding: 6px 12px !important;
+                          min-height: unset !important;
+                          box-sizing: border-box !important;
+                        }
                         [data-editor-presentation-block].editor-slide-canvas-fintech [data-unified-menu] * {
                           color: #171717 !important;
                           font-size: 14px !important;
                           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
                           line-height: normal !important;
                           font-weight: normal !important;
+                          box-sizing: border-box !important;
                         }
                         [data-editor-presentation-block].editor-slide-canvas-fintech [data-unified-menu] button {
                           font-size: 14px !important;
+                          padding: 8px !important;
+                          min-width: unset !important;
+                          min-height: unset !important;
+                        }
+                        [data-editor-presentation-block].editor-slide-canvas-fintech [data-unified-menu] button svg,
+                        [data-editor-presentation-block].editor-slide-canvas-fintech [data-unified-menu] img {
+                          width: 16px !important;
+                          height: 16px !important;
+                          min-width: 16px !important;
+                          min-height: 16px !important;
                         }
                       ` }} />
                     )}

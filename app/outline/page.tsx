@@ -300,10 +300,6 @@ export default function OutlinePage() {
           box-shadow: rgba(0, 0, 0, 0.08) 0px 16px 32px;
           transform: translateY(-2px);
         }
-        .outline-textarea-focus:focus-within {
-          box-shadow: rgba(0, 0, 0, 0.08) 0px 16px 32px;
-          transform: translateY(-2px);
-        }
       ` }} />
       <header className="w-full bg-[#fafafa] px-4 py-3">
         <Button variant="ghost" size="sm" className="gap-2 text-gray-600" onClick={() => router.push('/')}>
@@ -315,10 +311,7 @@ export default function OutlinePage() {
       <main className="flex-1 max-w-3xl mx-auto w-full p-6 md:p-8">
         <h1 className="text-2xl font-bold text-gray-900 mb-4">Структура презентации</h1>
 
-        <section
-          className="mb-6 rounded-2xl p-4 transition-shadow bg-white border border-[rgba(0,0,0,0.08)]"
-          style={{ boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}
-        >
+        <section className="mb-6 rounded-2xl p-4 bg-white border border-[rgba(0,0,0,0.08)]">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
             <div>
               <label className="text-sm font-medium text-black mb-1 block">Тон</label>
