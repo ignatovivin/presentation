@@ -313,27 +313,85 @@ export default function OutlinePage() {
       </header>
 
       <main className="flex-1 max-w-3xl mx-auto w-full p-6 md:p-8">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Структура презентации</h1>
-        <p className="text-gray-500 text-sm mb-6">Тема и настройки можно изменить и перегенерировать структуру. Карточки можно редактировать, перетаскивать и добавлять.</p>
+        <h1 className="text-2xl font-bold text-gray-900 mb-4">Структура презентации</h1>
 
-        <section className="mb-8">
-          <label className="text-sm font-medium text-gray-900 mb-1 block">Тема (для перегенерации контента)</label>
-          <div
-            className="outline-textarea-focus rounded-2xl border bg-white mb-3 transition-all duration-300 ease-in-out"
-            style={{ borderColor: 'rgba(0, 0, 0, 0.08)' }}
-          >
-            <Textarea
-              value={topic}
-              onChange={(e) => setTopic(e.target.value)}
-              placeholder="О чём презентация?"
-              className="min-h-[100px] pt-4 px-3 pb-3 text-base resize-none rounded-2xl border-0 bg-transparent text-black placeholder:text-gray-400 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none"
-            />
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
+        <section
+          className="mb-6 rounded-2xl p-4 transition-shadow"
+          style={{ backgroundColor: '#f5f5f5', boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}
+        >
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
             <div>
-              <span className="text-sm text-gray-500 mr-2">Количество карточек:</span>
+              <label className="text-sm font-medium text-black mb-1 block">Тон</label>
+              <Select value={aiSettings.tone} onValueChange={(v) => setAiSettings((s) => ({ ...s, tone: v }))}>
+                <SelectTrigger
+                  className="w-full focus:!border-[rgb(52,137,243)] focus:ring-0 focus:ring-offset-0 focus-visible:!border-[rgb(52,137,243)] focus-visible:ring-0 focus-visible:ring-offset-0 data-[state=open]:!border-[rgb(52,137,243)]"
+                  style={{
+                    borderColor: 'rgba(0, 0, 0, 0)',
+                    backgroundColor: 'rgb(243, 243, 243)',
+                    borderRadius: '8px',
+                    borderWidth: '1px',
+                  }}
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="professional">Профессиональный</SelectItem>
+                  <SelectItem value="casual">Неформальный</SelectItem>
+                  <SelectItem value="creative">Креативный</SelectItem>
+                  <SelectItem value="academic">Академический</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-black mb-1 block">Язык</label>
+              <Select value={aiSettings.language} onValueChange={(v) => setAiSettings((s) => ({ ...s, language: v }))}>
+                <SelectTrigger
+                  className="w-full focus:!border-[rgb(52,137,243)] focus:ring-0 focus:ring-offset-0 focus-visible:!border-[rgb(52,137,243)] focus-visible:ring-0 focus-visible:ring-offset-0 data-[state=open]:!border-[rgb(52,137,243)]"
+                  style={{
+                    borderColor: 'rgba(0, 0, 0, 0)',
+                    backgroundColor: 'rgb(243, 243, 243)',
+                    borderRadius: '8px',
+                    borderWidth: '1px',
+                  }}
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="russian">Русский</SelectItem>
+                  <SelectItem value="english">Английский</SelectItem>
+                  <SelectItem value="spanish">Испанский</SelectItem>
+                  <SelectItem value="german">Немецкий</SelectItem>
+                  <SelectItem value="french">Французский</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-black mb-1 block">Аудитория</label>
+              <Input
+                value={aiSettings.audience}
+                onChange={(e) => setAiSettings((s) => ({ ...s, audience: e.target.value }))}
+                placeholder="Необязательно"
+                className="w-full focus-visible:!border-[rgb(52,137,243)] focus-visible:ring-0 focus-visible:ring-offset-0"
+                style={{
+                  borderColor: 'rgba(0, 0, 0, 0)',
+                  backgroundColor: 'rgb(243, 243, 243)',
+                  borderRadius: '8px',
+                  borderWidth: '1px',
+                }}
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-black mb-1 block">Карточки</label>
               <Select value={String(slidesCount)} onValueChange={(v) => setSlidesCount(parseInt(v, 10))}>
-                <SelectTrigger className="w-[100px] inline-flex rounded-xl border-gray-200 bg-white">
+                <SelectTrigger
+                  className="w-full focus:!border-[rgb(52,137,243)] focus:ring-0 focus:ring-offset-0 focus-visible:!border-[rgb(52,137,243)] focus-visible:ring-0 focus-visible:ring-offset-0 data-[state=open]:!border-[rgb(52,137,243)]"
+                  style={{
+                    borderColor: 'rgba(0, 0, 0, 0)',
+                    backgroundColor: 'rgb(243, 243, 243)',
+                    borderRadius: '8px',
+                    borderWidth: '1px',
+                  }}
+                >
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -343,10 +401,26 @@ export default function OutlinePage() {
                 </SelectContent>
               </Select>
             </div>
+          </div>
+          <div>
+            <Textarea
+              value={topic}
+              onChange={(e) => setTopic(e.target.value)}
+              placeholder="О чём презентация? Например: Введение в мир Наруто"
+              className="w-full min-h-[100px] resize-none rounded-xl border border-transparent text-black placeholder:text-gray-500 focus-visible:!border-[rgb(52,137,243)] focus-visible:ring-0 focus-visible:ring-offset-0"
+              style={{
+                borderColor: 'rgba(0, 0, 0, 0)',
+                backgroundColor: 'rgb(243, 243, 243)',
+                borderRadius: '8px',
+                borderWidth: '1px',
+              }}
+            />
+          </div>
+          <div className="mt-4">
             <Button
               onClick={handleGenerateOutline}
               disabled={loadingOutline || !topic.trim()}
-              className="rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-900"
+              className="rounded-xl bg-gray-200 hover:bg-gray-300 text-gray-900"
             >
               {loadingOutline ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               {loadingOutline ? ' Генерация...' : 'Сгенерировать структуру'}
@@ -456,50 +530,6 @@ export default function OutlinePage() {
                 )}
               </button>
             ))}
-          </div>
-        </section>
-
-        <section className="mb-8">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Настройки</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
-            <div className="min-h-[72px] flex flex-col">
-              <label className="text-sm font-medium text-gray-700 mb-1 block">Тон</label>
-              <Select value={aiSettings.tone} onValueChange={(v) => setAiSettings((s) => ({ ...s, tone: v }))}>
-                <SelectTrigger className="h-10 min-h-[40px] w-full rounded-xl border border-gray-200 bg-white text-gray-900">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="professional">Профессиональный</SelectItem>
-                  <SelectItem value="casual">Неформальный</SelectItem>
-                  <SelectItem value="creative">Креативный</SelectItem>
-                  <SelectItem value="academic">Академический</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="min-h-[72px] flex flex-col">
-              <label className="text-sm font-medium text-gray-700 mb-1 block">Язык</label>
-              <Select value={aiSettings.language} onValueChange={(v) => setAiSettings((s) => ({ ...s, language: v }))}>
-                <SelectTrigger className="h-10 min-h-[40px] w-full rounded-xl border border-gray-200 bg-white text-gray-900">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="russian">Русский</SelectItem>
-                  <SelectItem value="english">Английский</SelectItem>
-                  <SelectItem value="spanish">Испанский</SelectItem>
-                  <SelectItem value="german">Немецкий</SelectItem>
-                  <SelectItem value="french">Французский</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="min-h-[72px] flex flex-col">
-              <label className="text-sm font-medium text-gray-700 mb-1 block">Аудитория</label>
-              <Input
-                value={aiSettings.audience}
-                onChange={(e) => setAiSettings((s) => ({ ...s, audience: e.target.value }))}
-                placeholder="Необязательно"
-                className="h-10 min-h-[40px] w-full rounded-xl border border-gray-200 bg-white text-gray-900"
-              />
-            </div>
           </div>
         </section>
 
