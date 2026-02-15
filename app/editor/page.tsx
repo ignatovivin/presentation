@@ -169,14 +169,12 @@ export default function EditorPage() {
         })
       }
 
-      // Выбираем первый слайд и переходим на outline (режим «результат»)
+      // Выбираем первый слайд, остаёмся в редакторе
       setTimeout(() => {
         const updatedPres = usePresentationStore.getState().currentPresentation
         if (updatedPres && updatedPres.slides.length > 0) {
           setCurrentSlideId(updatedPres.slides[0].id)
         }
-        if (typeof window !== 'undefined') localStorage.setItem('outline-show-result', 'true')
-        router.push('/outline')
       }, 200)
     } catch (error) {
       console.error('Ошибка генерации слайдов:', error)
@@ -417,42 +415,46 @@ export default function EditorPage() {
                 const isFintech = templateId === 'fintech-corporate'
                 const templateStyle = getTemplateStyle(templateId)
                 const canvasClass = 'w-full max-w-[1280px] max-h-full aspect-video overflow-visible rounded-[32px] shrink-0 ' + (isFintech ? 'editor-slide-canvas editor-slide-canvas-fintech' : 'bg-white')
+                const canvasStyle = isFintech && templateStyle
+                  ? (Object.fromEntries(
+                      Object.entries(templateStyle.cssVars).map(([k, v]) => [k, v])
+                    ) as React.CSSProperties)
+                  : undefined
+                const fontFamily = templateStyle?.fonts?.body ?? 'Arial, Helvetica, sans-serif'
                 return (
                   <>
                     {isFintech && templateStyle && (
                       <style dangerouslySetInnerHTML={{ __html: `
                         .editor-slide-canvas-fintech {
-                          background: var(--editor-slide-bg, #FFFFFF) !important;
-                          color: var(--editor-slide-text, #081C4F) !important;
-                          font-family: Arial, Helvetica, sans-serif !important;
-                          padding: var(--editor-padding-medium, 80px) var(--editor-padding-large, 100px) !important;
+                          background: var(--slide-bg) !important;
+                          color: var(--slide-text) !important;
+                          font-family: ${fontFamily} !important;
+                          padding: var(--padding-medium) var(--padding-large) !important;
                           text-align: left !important;
                         }
                         .editor-slide-canvas-fintech [data-slide-title],
                         .editor-slide-canvas-fintech [data-slide-title] input {
-                          font-size: var(--editor-heading-size, 48px) !important;
+                          font-size: var(--heading-size) !important;
                           font-weight: 700 !important;
-                          color: var(--editor-slide-text, #081C4F) !important;
+                          color: var(--slide-text) !important;
+                          margin-bottom: var(--spacing) !important;
                         }
                         .editor-slide-canvas-fintech .ProseMirror,
                         .editor-slide-canvas-fintech .ProseMirror * {
-                          font-size: var(--editor-body-size, 18px) !important;
-                          color: var(--editor-slide-text, #081C4F) !important;
+                          font-size: var(--body-size) !important;
+                          color: var(--slide-text) !important;
                           line-height: 1.5 !important;
+                        }
+                        .editor-slide-canvas-fintech img {
+                          border-radius: var(--card-radius) !important;
+                          box-shadow: var(--card-shadow) !important;
                         }
                       ` }} />
                     )}
                     <div
                       className={canvasClass}
                       data-template={templateId || undefined}
-                      style={isFintech && templateStyle ? {
-                        ['--editor-slide-bg' as string]: templateStyle.cssVars['--slide-bg'],
-                        ['--editor-slide-text' as string]: templateStyle.cssVars['--slide-text'],
-                        ['--editor-heading-size' as string]: templateStyle.cssVars['--heading-size'],
-                        ['--editor-body-size' as string]: templateStyle.cssVars['--body-size'],
-                        ['--editor-padding-medium' as string]: templateStyle.cssVars['--padding-medium'],
-                        ['--editor-padding-large' as string]: templateStyle.cssVars['--padding-large'],
-                      } : undefined}
+                      style={canvasStyle}
                     >
                       <SlideEditor
                         slide={currentSlide}
