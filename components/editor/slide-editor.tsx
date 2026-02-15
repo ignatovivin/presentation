@@ -57,6 +57,51 @@ export function SlideEditor({ slide, onUpdate, onDelete }: SlideEditorProps) {
   const bodyPos = slide.bodyPosition ?? BODY_DEFAULT
   const imagePos = slide.imagePosition ?? IMAGE_DEFAULT
 
+  const GAP = 12
+
+  const applyVerticalAlignment = (v: VerticalAlign) => {
+    const canvas = contentCanvasRef.current
+    const titleEl = titleBlockRef.current
+    const bodyEl = bodyBlockRef.current
+    const imageEl = slide.imageUrl?.startsWith('http') ? imageBlockRef.current : null
+    if (!canvas || !titleEl || !bodyEl) return
+    const canvasH = canvas.offsetHeight
+    const titleH = titleEl.offsetHeight
+    const bodyH = bodyEl.offsetHeight
+    const imageH = imageEl?.offsetHeight ?? 0
+    let totalH = titleH + GAP + bodyH
+    if (imageEl && imageH > 0) totalH += GAP + imageH
+    let titleY: number
+    let bodyY: number
+    let imageY: number
+    if (v === 'top') {
+      titleY = 0
+      bodyY = titleH + GAP
+      imageY = bodyY + bodyH + GAP
+    } else if (v === 'bottom') {
+      const startY = Math.max(0, canvasH - totalH)
+      titleY = startY
+      bodyY = startY + titleH + GAP
+      imageY = bodyY + bodyH + GAP
+    } else {
+      const startY = Math.max(0, (canvasH - totalH) / 2)
+      titleY = startY
+      bodyY = startY + titleH + GAP
+      imageY = bodyY + bodyH + GAP
+    }
+    onUpdate({
+      verticalAlign: v,
+      titlePosition: { x: titlePos.x, y: titleY },
+      bodyPosition: { x: bodyPos.x, y: bodyY },
+      ...(slide.imageUrl?.startsWith('http') && { imagePosition: { x: imagePos.x, y: imageY } }),
+    })
+  }
+
+  const handleVerticalAlign = (v: VerticalAlign) => {
+    onUpdate({ verticalAlign: v })
+    requestAnimationFrame(() => applyVerticalAlignment(v))
+  }
+
   const handleElementMoveStart = (element: 'title' | 'body' | 'image') => (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
@@ -164,6 +209,7 @@ export function SlideEditor({ slide, onUpdate, onDelete }: SlideEditorProps) {
   return (
     <div
       ref={slideWrapRef}
+      data-slide-surface
       className={cn(
         'w-full h-full bg-white grid grid-cols-1 grid-rows-[0_1fr] overflow-visible rounded-[32px]',
         !menuOpen && 'hover:shadow-[inset_0_0_0_2px_rgb(203,213,225)]',
@@ -197,7 +243,7 @@ export function SlideEditor({ slide, onUpdate, onDelete }: SlideEditorProps) {
                   contentAlign={contentAlign}
                   verticalAlign={verticalAlign}
                   onContentAlign={(v) => onUpdate({ contentAlign: v })}
-                  onVerticalAlign={(v) => onUpdate({ verticalAlign: v })}
+                  onVerticalAlign={handleVerticalAlign}
                   onDelete={onDelete}
                 />
               )}
@@ -243,6 +289,7 @@ export function SlideEditor({ slide, onUpdate, onDelete }: SlideEditorProps) {
               {(hoveredElement === 'title' || draggingElement === 'title') && (
                 <button
                   type="button"
+                  data-move-handle
                   onMouseDown={handleElementMoveStart('title')}
                   className="absolute -left-2 -top-2 z-10 flex h-6 w-6 cursor-grab items-center justify-center rounded border-0 bg-white/90 text-gray-500 shadow hover:bg-gray-100 active:cursor-grabbing"
                   title="Переместить заголовок"
@@ -278,6 +325,7 @@ export function SlideEditor({ slide, onUpdate, onDelete }: SlideEditorProps) {
               {(hoveredElement === 'body' || draggingElement === 'body') && (
                 <button
                   type="button"
+                  data-move-handle
                   onMouseDown={handleElementMoveStart('body')}
                   className="absolute -left-2 -top-2 z-10 flex h-6 w-6 cursor-grab items-center justify-center rounded border-0 bg-white/90 text-gray-500 shadow hover:bg-gray-100 active:cursor-grabbing"
                   title="Переместить текст"
@@ -316,6 +364,7 @@ export function SlideEditor({ slide, onUpdate, onDelete }: SlideEditorProps) {
                 {(hoveredElement === 'image' || draggingElement === 'image') && (
                   <button
                     type="button"
+                    data-move-handle
                     onMouseDown={handleElementMoveStart('image')}
                     className="absolute -left-2 -top-2 z-10 flex h-6 w-6 cursor-grab items-center justify-center rounded border-0 bg-white/90 text-gray-500 shadow hover:bg-gray-100 active:cursor-grabbing"
                     title="Переместить изображение"

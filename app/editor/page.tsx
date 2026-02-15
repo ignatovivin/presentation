@@ -461,32 +461,44 @@ export default function EditorPage() {
                   <>
                     {isFintech && templateStyle && (
                       <style dangerouslySetInnerHTML={{ __html: `
-                        /* Стили шаблона — только для контента слайда, не для header/sidebar/кнопок */
-                        [data-editor-presentation-block].editor-slide-canvas-fintech {
+                        /* Стили шаблона — ТОЛЬКО визуал слайда и отображение текста. Не затрагивают меню, иконки перемещения, ховеры, активные состояния. */
+                        [data-editor-presentation-block].editor-slide-canvas-fintech [data-slide-surface] {
                           background: var(--slide-bg) !important;
-                          color: var(--slide-text) !important;
-                          font-family: ${fontFamily} !important;
                           padding: var(--padding-medium) var(--padding-large) !important;
-                          text-align: left !important;
                         }
-                        [data-editor-presentation-block].editor-slide-canvas-fintech [data-slide-title],
-                        [data-editor-presentation-block].editor-slide-canvas-fintech [data-slide-title] input {
+                        [data-editor-presentation-block].editor-slide-canvas-fintech [data-slide-surface] [data-slide-title],
+                        [data-editor-presentation-block].editor-slide-canvas-fintech [data-slide-surface] [data-slide-title] input {
                           font-size: var(--heading-size) !important;
                           font-weight: 700 !important;
                           color: var(--slide-text) !important;
                           margin-bottom: var(--spacing) !important;
+                          font-family: ${fontFamily} !important;
                         }
-                        [data-editor-presentation-block].editor-slide-canvas-fintech .ProseMirror,
-                        [data-editor-presentation-block].editor-slide-canvas-fintech .ProseMirror * {
+                        [data-editor-presentation-block].editor-slide-canvas-fintech [data-slide-surface] .ProseMirror,
+                        [data-editor-presentation-block].editor-slide-canvas-fintech [data-slide-surface] .ProseMirror * {
                           font-size: var(--body-size) !important;
                           color: var(--slide-text) !important;
                           line-height: 1.5 !important;
+                          font-family: ${fontFamily} !important;
                         }
-                        [data-editor-presentation-block].editor-slide-canvas-fintech img {
+                        [data-editor-presentation-block].editor-slide-canvas-fintech [data-slide-surface] img {
                           border-radius: var(--card-radius) !important;
                           box-shadow: var(--card-shadow) !important;
                         }
-                        /* Меню — уже задано глобально в [data-unified-menu], не дублируем */
+                        /* Меню и иконки перемещения — шаблон не должен их переопределять */
+                        [data-editor-presentation-block] [data-unified-menu],
+                        [data-editor-presentation-block] [data-unified-menu] * {
+                          font-family: inherit !important;
+                          color: inherit !important;
+                        }
+                        [data-editor-presentation-block] [data-unified-menu] {
+                          background: #fff !important;
+                        }
+                        [data-editor-presentation-block] [data-move-handle] {
+                          background: rgba(255,255,255,0.9) !important;
+                          color: #4b5563 !important;
+                          font-family: inherit !important;
+                        }
                       ` }} />
                     )}
                     <div
