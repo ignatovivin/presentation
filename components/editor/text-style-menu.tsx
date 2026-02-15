@@ -83,14 +83,14 @@ export function TextStyleMenu({
   const onAlign = isTitleFocused ? onTitleAlign : onBodyAlign
 
   return (
-    <>
-      {/* Дропдаун типа текста */}
-      <div className="inline-flex items-center">
+    <div className="inline-flex items-center gap-0.5" role="toolbar" aria-label="Стиль текста">
+      {/* Дропдаун типа текста — высота и отступы как у кнопок блочного меню */}
+      <div className="relative inline-flex items-center">
         <select
           value={currentBlock}
           onChange={(e) => applyBlockType(e.target.value as BlockType)}
           disabled={isTitleFocused}
-          className="h-9 min-w-[140px] appearance-none rounded-lg border-0 bg-transparent py-2 pl-3 pr-8 text-sm text-gray-700 focus:ring-0"
+          className="h-7 min-w-[120px] appearance-none rounded-lg border-0 bg-transparent py-0 pl-2 pr-6 text-sm leading-none text-gray-700 focus:ring-0"
           aria-label="Стиль текста"
         >
           {BLOCK_OPTIONS.map(({ id, label }) => (
@@ -99,30 +99,49 @@ export function TextStyleMenu({
             </option>
           ))}
         </select>
-        <ChevronDown className="pointer-events-none -ml-6 h-4 w-4 text-gray-500" aria-hidden />
+        <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" aria-hidden />
       </div>
 
       <div className="mx-0.5 h-5 w-px bg-gray-300" aria-hidden />
 
-      {/* Выравнивание текста */}
-      <button type="button" onClick={() => onAlign('left')} className={cn('rounded-lg p-1.5 transition-colors hover:bg-black/10', align === 'left' && 'bg-black/10')} title="По левому краю">
+      {/* Выравнивание текста — те же классы, что в AlignmentToolbar */}
+      <button
+        type="button"
+        onClick={() => onAlign('left')}
+        className={cn('rounded-lg p-1.5 transition-colors hover:bg-black/10', align === 'left' && 'bg-black/10')}
+        title="По левому краю"
+        aria-pressed={align === 'left'}
+      >
         <AlignLeft className="h-4 w-4 text-gray-700" />
       </button>
-      <button type="button" onClick={() => onAlign('center')} className={cn('rounded-lg p-1.5 transition-colors hover:bg-black/10', align === 'center' && 'bg-black/10')} title="По центру">
+      <button
+        type="button"
+        onClick={() => onAlign('center')}
+        className={cn('rounded-lg p-1.5 transition-colors hover:bg-black/10', align === 'center' && 'bg-black/10')}
+        title="По центру"
+        aria-pressed={align === 'center'}
+      >
         <AlignCenter className="h-4 w-4 text-gray-700" />
       </button>
-      <button type="button" onClick={() => onAlign('right')} className={cn('rounded-lg p-1.5 transition-colors hover:bg-black/10', align === 'right' && 'bg-black/10')} title="По правому краю">
+      <button
+        type="button"
+        onClick={() => onAlign('right')}
+        className={cn('rounded-lg p-1.5 transition-colors hover:bg-black/10', align === 'right' && 'bg-black/10')}
+        title="По правому краю"
+        aria-pressed={align === 'right'}
+      >
         <AlignRight className="h-4 w-4 text-gray-700" />
       </button>
 
       <div className="mx-0.5 h-5 w-px bg-gray-300" aria-hidden />
 
-      {/* Размер */}
-      <div className="inline-flex items-center gap-1">
+      {/* Размер шрифта — та же вёрстка, что у дропдауна типа (цифры по центру относительно шеврона) */}
+      <div className="relative inline-flex items-center">
         <select
           value={bodyFontSize}
           onChange={(e) => onBodyFontSize(Number(e.target.value))}
-          className="h-9 rounded-lg border-0 bg-transparent py-1 pr-6 pl-2 text-sm text-gray-700 focus:ring-0"
+          className="h-7 min-w-[4rem] appearance-none rounded-lg border-0 bg-transparent py-0 pl-2 pr-6 text-sm leading-none text-gray-700 focus:ring-0"
+          aria-label="Размер шрифта"
         >
           {FONT_SIZES.map((size) => (
             <option key={size} value={size}>
@@ -130,7 +149,8 @@ export function TextStyleMenu({
             </option>
           ))}
         </select>
+        <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" aria-hidden />
       </div>
-    </>
+    </div>
   )
 }

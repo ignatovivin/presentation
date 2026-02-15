@@ -22,6 +22,16 @@ export interface Slide {
   bodyAlign?: ContentAlign
   /** Размер шрифта тела слайда (например 14, 16, 18) */
   bodyFontSize?: number
+  /** Смещение блока контента по горизонтали (px), для свободного перемещения (legacy, см. titlePosition/bodyPosition) */
+  contentOffsetX?: number
+  /** Смещение блока контента по вертикали (px), для свободного перемещения (legacy) */
+  contentOffsetY?: number
+  /** Позиция заголовка на слайде (px), независимый блок */
+  titlePosition?: { x: number; y: number }
+  /** Позиция тела/подзаголовка на слайде (px), независимый блок */
+  bodyPosition?: { x: number; y: number }
+  /** Позиция изображения на слайде (px), независимый блок */
+  imagePosition?: { x: number; y: number }
 }
 
 export interface Presentation {

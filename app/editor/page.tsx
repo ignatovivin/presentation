@@ -325,6 +325,7 @@ export default function EditorPage() {
     if (!currentSlide || !currentPresentation) return
     const remaining = currentPresentation.slides.filter((s) => s.id !== currentSlide.id)
     if (remaining.length > 0) setCurrentSlideId(remaining[0].id)
+    else setCurrentSlideId(null)
     deleteSlide(currentSlide.id)
   }, [currentSlide, currentPresentation, deleteSlide])
 
@@ -384,33 +385,49 @@ export default function EditorPage() {
         </div>
       </header>
 
-      {/* Глобальный сброс размера меню — компактные паддинги */}
+      {/* Стили редактора: меню + слайд по твоим размерам (1920→1533×780, 1440→1053×780, формула ширины: 100vw−387) */}
       <style dangerouslySetInnerHTML={{ __html: `
         [data-unified-menu] {
           font-size: 14px !important;
           padding: 4px 8px !important;
-          min-height: unset !important;
+          min-height: 28px !important;
           box-sizing: border-box !important;
+          align-items: center !important;
         }
-        [data-unified-menu] * {
-          font-size: 14px !important;
-          box-sizing: border-box !important;
+        [data-unified-menu] * { font-size: 14px !important; box-sizing: border-box !important; }
+        [data-unified-menu] button { padding: 6px !important; min-width: unset !important; min-height: 28px !important; height: 28px !important; }
+        [data-unified-menu] button svg, [data-unified-menu] img { width: 16px !important; height: 16px !important; min-width: 16px !important; min-height: 16px !important; }
+        [data-unified-menu] select { height: 28px !important; min-height: 28px !important; line-height: 1 !important; padding: 7px 8px !important; padding-right: 24px !important; }
+        .editor-slide-canvas-wrap {
+          box-sizing: border-box;
+          min-width: 0;
+          min-height: 0;
+          width: min(1533px, calc(100vw - 387px), 100%);
+          max-width: 1533px;
+          height: min(780px, calc(100vh - 156px), 100%);
+          max-height: min(780px, calc(100vh - 156px), 100%);
         }
-        [data-unified-menu] button {
-          padding: 6px !important;
-          min-width: unset !important;
-          min-height: unset !important;
+        @media (min-width: 1920px) {
+          .editor-slide-canvas-wrap { width: 1533px; max-width: 1533px; height: 780px; max-height: 780px; }
         }
-        [data-unified-menu] button svg,
-        [data-unified-menu] img {
-          width: 16px !important;
-          height: 16px !important;
-          min-width: 16px !important;
-          min-height: 16px !important;
+        @media (min-width: 1440px) and (max-width: 1919px) {
+          .editor-slide-canvas-wrap {
+            width: 1053px; max-width: 1053px;
+            height: min(780px, calc(100vh - 156px));
+            max-height: min(780px, calc(100vh - 156px));
+          }
+        }
+        @media (max-width: 1439px) {
+          .editor-slide-canvas-wrap {
+            width: min(1053px, calc(100vw - 387px));
+            max-width: 1053px;
+            height: min(780px, calc(100vh - 156px));
+            max-height: min(780px, calc(100vh - 156px));
+          }
         }
       ` }} />
-      {/* Main Editor — слева превью + кнопка «Добавить слайд», по центру слайд (как в Figma) */}
-      <div className="flex-1 grid grid-cols-[110px_1fr] min-h-0 overflow-visible">
+      {/* Main Editor — фон как у центра, чтобы 24px отступы не давали белых линий */}
+      <div className="flex-1 grid grid-cols-[110px_1fr] gap-x-6 px-6 min-h-0 overflow-visible bg-[#f2f2f2]">
         <SlideList
           slides={currentPresentation.slides}
           currentSlideId={currentSlideId}
@@ -422,22 +439,21 @@ export default function EditorPage() {
           onChangeSlideType={handleChangeSlideType}
         />
 
-        {/* Центральная область — слайд по центру (как в Figma) */}
-        <div className="relative overflow-visible bg-[#f5f5f5] grid place-items-center p-4 min-h-0">
+        {/* Content Container: grid, отступы 84/120/24/120, слайд адаптируется по ширине и высоте */}
+        <div className="relative overflow-hidden bg-[#f2f2f2] grid grid-rows-1 grid-cols-1 min-h-0 pt-[84px] pr-[120px] pb-[24px] pl-[120px]">
           {currentSlide ? (
             <div
               id={`slide-${currentSlide.id}`}
-              className="absolute inset-0 grid place-items-center p-6 overflow-visible"
+              className="absolute inset-0 grid grid-cols-1 grid-rows-1 place-items-center min-h-0 overflow-hidden"
             >
-              {/* Окно слайда: стиль шаблона применяется к канвасу (финтех и др.) */}
               {(() => {
                 const templateId = currentPresentation?.templateId
                 const isFintech = templateId === 'fintech-corporate'
                 const templateStyle = getTemplateStyle(templateId)
-                const canvasClass = 'w-full max-w-[1280px] max-h-full aspect-video overflow-visible rounded-[32px] shrink-0 ' + (isFintech ? 'editor-slide-canvas editor-slide-canvas-fintech' : 'bg-white')
+                const canvasClass = 'editor-slide-canvas-wrap overflow-hidden rounded-[32px] shrink-0 ' + (isFintech ? 'editor-slide-canvas editor-slide-canvas-fintech' : 'bg-white')
                 const canvasStyle = isFintech && templateStyle
                   ? (Object.fromEntries(
-                      Object.entries(templateStyle.cssVars).map(([k, v]) => [k, v])
+                      Object.entries(templateStyle.cssVars).filter(([k]) => !/^(width|height|maxWidth|maxHeight|minWidth|minHeight)$/i.test(k)).map(([k, v]) => [k, v])
                     ) as React.CSSProperties)
                   : undefined
                 const fontFamily = templateStyle?.fonts?.body ?? 'Arial, Helvetica, sans-serif'
@@ -470,38 +486,7 @@ export default function EditorPage() {
                           border-radius: var(--card-radius) !important;
                           box-shadow: var(--card-shadow) !important;
                         }
-                        /* Всплывающие меню — сброс стилей шаблона, компактный UI */
-                        [data-editor-presentation-block].editor-slide-canvas-fintech [data-unified-menu] {
-                          color: #171717 !important;
-                          font-size: 14px !important;
-                          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
-                          line-height: normal !important;
-                          font-weight: normal !important;
-                          padding: 4px 8px !important;
-                          min-height: unset !important;
-                          box-sizing: border-box !important;
-                        }
-                        [data-editor-presentation-block].editor-slide-canvas-fintech [data-unified-menu] * {
-                          color: #171717 !important;
-                          font-size: 14px !important;
-                          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
-                          line-height: normal !important;
-                          font-weight: normal !important;
-                          box-sizing: border-box !important;
-                        }
-                        [data-editor-presentation-block].editor-slide-canvas-fintech [data-unified-menu] button {
-                          font-size: 14px !important;
-                          padding: 6px !important;
-                          min-width: unset !important;
-                          min-height: unset !important;
-                        }
-                        [data-editor-presentation-block].editor-slide-canvas-fintech [data-unified-menu] button svg,
-                        [data-editor-presentation-block].editor-slide-canvas-fintech [data-unified-menu] img {
-                          width: 16px !important;
-                          height: 16px !important;
-                          min-width: 16px !important;
-                          min-height: 16px !important;
-                        }
+                        /* Меню — уже задано глобально в [data-unified-menu], не дублируем */
                       ` }} />
                     )}
                     <div
