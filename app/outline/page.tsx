@@ -316,8 +316,8 @@ export default function OutlinePage() {
         <h1 className="text-2xl font-bold text-gray-900 mb-4">Структура презентации</h1>
 
         <section
-          className="mb-6 rounded-2xl p-4 transition-shadow"
-          style={{ backgroundColor: '#f5f5f5', boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}
+          className="mb-6 rounded-2xl p-4 transition-shadow bg-white border border-[rgba(0,0,0,0.08)]"
+          style={{ boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}
         >
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
             <div>
