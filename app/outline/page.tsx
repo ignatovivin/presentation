@@ -305,14 +305,14 @@ export default function OutlinePage() {
           transform: translateY(-2px);
         }
       ` }} />
-      <header className="border-b border-gray-200 bg-white px-4 py-3">
+      <header className="w-full bg-[#fafafa] px-4 py-3">
         <Button variant="ghost" size="sm" className="gap-2 text-gray-600" onClick={() => router.push('/')}>
           <ArrowLeft className="h-4 w-4" />
           На главную
         </Button>
       </header>
 
-      <main className="flex-1 max-w-3xl mx-auto w-full p-6 md:p-8 pb-32">
+      <main className="flex-1 max-w-3xl mx-auto w-full p-6 md:p-8">
         <h1 className="text-2xl font-bold text-gray-900 mb-2">Структура презентации</h1>
         <p className="text-gray-500 text-sm mb-6">Тема и настройки можно изменить и перегенерировать структуру. Карточки можно редактировать, перетаскивать и добавлять.</p>
 
@@ -431,7 +431,7 @@ export default function OutlinePage() {
         <section className="mb-8">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Визуальный шаблон</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-            {TEMPLATES.map((t) => (
+            {TEMPLATES.slice(0, 3).map((t) => (
               <button
                 key={t.id}
                 type="button"
@@ -459,13 +459,13 @@ export default function OutlinePage() {
           </div>
         </section>
 
-        <section className="space-y-4">
-          <h2 className="text-lg font-semibold text-gray-900">Настройки</h2>
+        <section className="mb-8">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Настройки</h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
-            <div>
+            <div className="min-h-[72px] flex flex-col">
               <label className="text-sm font-medium text-gray-700 mb-1 block">Тон</label>
               <Select value={aiSettings.tone} onValueChange={(v) => setAiSettings((s) => ({ ...s, tone: v }))}>
-                <SelectTrigger className="rounded-xl border-gray-200 bg-white">
+                <SelectTrigger className="h-10 min-h-[40px] w-full rounded-xl border border-gray-200 bg-white text-gray-900">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -476,10 +476,10 @@ export default function OutlinePage() {
                 </SelectContent>
               </Select>
             </div>
-            <div>
+            <div className="min-h-[72px] flex flex-col">
               <label className="text-sm font-medium text-gray-700 mb-1 block">Язык</label>
               <Select value={aiSettings.language} onValueChange={(v) => setAiSettings((s) => ({ ...s, language: v }))}>
-                <SelectTrigger className="rounded-xl border-gray-200 bg-white">
+                <SelectTrigger className="h-10 min-h-[40px] w-full rounded-xl border border-gray-200 bg-white text-gray-900">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -491,28 +491,28 @@ export default function OutlinePage() {
                 </SelectContent>
               </Select>
             </div>
-            <div>
+            <div className="min-h-[72px] flex flex-col">
               <label className="text-sm font-medium text-gray-700 mb-1 block">Аудитория</label>
               <Input
                 value={aiSettings.audience}
                 onChange={(e) => setAiSettings((s) => ({ ...s, audience: e.target.value }))}
                 placeholder="Необязательно"
-                className="rounded-xl border-gray-200 bg-white"
+                className="h-10 min-h-[40px] w-full rounded-xl border border-gray-200 bg-white text-gray-900"
               />
             </div>
           </div>
         </section>
-      </main>
 
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 flex justify-center">
-        <Button
-          onClick={handleGenerate}
-          disabled={!topic.trim() || !selectedTemplate || cards.length === 0}
-          className="px-10 py-4 rounded-full font-semibold text-lg bg-[rgb(52,137,243)] hover:bg-[rgb(42,120,214)] text-white disabled:opacity-50"
-        >
-          Генерировать презентацию
-        </Button>
-      </div>
+        <div className="pt-4 pb-6 flex justify-center">
+          <Button
+            onClick={handleGenerate}
+            disabled={!topic.trim() || !selectedTemplate || cards.length === 0}
+            className="px-10 py-4 rounded-full font-semibold text-lg bg-[rgb(52,137,243)] hover:bg-[rgb(42,120,214)] text-white disabled:opacity-50"
+          >
+            Генерировать презентацию
+          </Button>
+        </div>
+      </main>
     </div>
   )
 }
