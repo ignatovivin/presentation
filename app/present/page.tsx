@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { usePresentationStore } from '@/store/presentation-store'
+import { getTemplateStyle } from '@/lib/templates'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, X } from 'lucide-react'
 
@@ -12,6 +13,8 @@ export default function PresentPage() {
   const revealRef = useRef<HTMLDivElement>(null)
   const revealInstanceRef = useRef<any>(null)
   const [isLoaded, setIsLoaded] = useState(false)
+  const templateStyle = currentPresentation ? getTemplateStyle(currentPresentation.templateId) : null
+  const isFintech = currentPresentation?.templateId === 'fintech-corporate'
 
   useEffect(() => {
     if (!currentPresentation) {
@@ -55,8 +58,59 @@ export default function PresentPage() {
     return null
   }
 
+  const sectionClassName = isFintech
+    ? 'flex flex-col items-start justify-center text-left'
+    : 'flex flex-col items-center justify-center p-16'
+  const sectionStyle = isFintech && templateStyle
+    ? {
+        background: 'var(--slide-bg)',
+        color: 'var(--slide-text)',
+        fontFamily: templateStyle.fonts?.body ?? 'Arial, sans-serif',
+        padding: 'var(--padding-medium) var(--padding-large)',
+      }
+    : undefined
+
   return (
-    <div className="fixed inset-0 bg-black z-50">
+    <div
+      className="fixed inset-0 bg-black z-50"
+      data-template={currentPresentation.templateId || undefined}
+    >
+      {isFintech && templateStyle && (
+        <style dangerouslySetInnerHTML={{ __html: `
+          [data-template="fintech-corporate"] {
+            ${Object.entries(templateStyle.cssVars).map(([k, v]) => `${k}: ${v};`).join('\n            ')}
+          }
+          [data-template="fintech-corporate"] .reveal {
+            background: var(--slide-bg) !important;
+          }
+          [data-template="fintech-corporate"] .reveal .viewport {
+            background: var(--slide-bg) !important;
+          }
+          [data-template="fintech-corporate"] .reveal .slides section {
+            background: var(--slide-bg) !important;
+            color: var(--slide-text) !important;
+            text-align: left !important;
+            padding: var(--padding-medium) var(--padding-large) !important;
+            font-family: Arial, Helvetica, sans-serif !important;
+          }
+          [data-template="fintech-corporate"] .reveal .slides section h1 {
+            font-size: var(--heading-size) !important;
+            font-weight: 700 !important;
+            color: var(--slide-text) !important;
+            margin-bottom: var(--spacing) !important;
+          }
+          [data-template="fintech-corporate"] .reveal .slides section .prose,
+          [data-template="fintech-corporate"] .reveal .slides section .prose * {
+            font-size: var(--body-size) !important;
+            color: var(--slide-text) !important;
+            line-height: 1.5 !important;
+          }
+          [data-template="fintech-corporate"] .reveal .slides section img {
+            border-radius: var(--card-radius) !important;
+            box-shadow: var(--card-shadow) !important;
+          }
+        ` }} />
+      )}
       <div className="absolute top-4 right-4 z-50 flex gap-2">
         <Button
           variant="secondary"
@@ -77,11 +131,12 @@ export default function PresentPage() {
 
       <div ref={revealRef} className="reveal">
         <div className="slides">
-          {currentPresentation.slides.map((slide, index) => (
+          {currentPresentation.slides.map((slide) => (
             <section
               key={slide.id}
               data-transition="slide"
-              className="flex flex-col items-center justify-center p-16"
+              className={sectionClassName}
+              style={sectionStyle}
             >
               {slide.imageUrl && (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -92,11 +147,14 @@ export default function PresentPage() {
                 />
               )}
               {slide.title && (
-                <h1 className="text-5xl font-bold mb-8">{slide.title}</h1>
+                <h1 className={isFintech ? 'font-bold' : 'text-5xl font-bold mb-8'} style={isFintech ? { fontSize: 'var(--heading-size)' } : undefined}>
+                  {slide.title}
+                </h1>
               )}
               {slide.content && (
                 <div
                   className="prose prose-lg max-w-4xl"
+                  style={isFintech ? { fontSize: 'var(--body-size)' } : undefined}
                   dangerouslySetInnerHTML={{ __html: slide.content }}
                 />
               )}

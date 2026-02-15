@@ -167,7 +167,7 @@ export function SlideEditor({ slide, onUpdate, onDelete }: SlideEditorProps) {
           >
             <div className="flex flex-col w-full max-w-full flex-1 min-h-0">
               {/* Заголовок — как в PowerPoint, верхний плейсхолдер */}
-              <div className="relative flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+              <div className="relative flex-shrink-0" onClick={(e) => e.stopPropagation()} data-slide-title>
                 <Input
                   value={slide.title || ''}
                   onChange={(e) => onUpdate({ title: e.target.value })}

@@ -25,17 +25,9 @@ import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } 
 import { CSS } from '@dnd-kit/utilities'
 import { motion } from 'framer-motion'
 import { ArrowDown, ArrowLeft, ArrowUp, Check, Edit3, FileText, GripVertical, Loader2, Play, Plus, Sparkles, Trash2 } from 'lucide-react'
+import { TEMPLATES } from '@/lib/templates'
 
 const SLIDES_COUNT_OPTIONS = [3, 5, 7, 10]
-
-const TEMPLATES = [
-  { id: 'minimal', name: 'Минимализм', description: 'Чистый дизайн для бизнеса', colors: ['#FFFFFF', '#000000', '#3B82F6'] },
-  { id: 'dark', name: 'Тёмная тема', description: 'Современный tech-стиль', colors: ['#0F172A', '#1E293B', '#06B6D4'] },
-  { id: 'colorful', name: 'Яркий', description: 'Креативный с акцентами', colors: ['#FFFFFF', '#EC4899', '#F59E0B'] },
-  { id: 'corporate', name: 'Корпоративный', description: 'Классический стиль', colors: ['#FFFFFF', '#1F2937', '#10B981'] },
-  { id: 'gradient', name: 'Градиенты', description: 'Плавные переходы', colors: ['#6366F1', '#8B5CF6', '#EC4899'] },
-  { id: 'mono', name: 'Монохром', description: 'Элегантный ч/б', colors: ['#FFFFFF', '#6B7280', '#111827'] },
-]
 
 const DEFAULT_AI = { imageType: 'realistic', tone: 'professional', language: 'russian', audience: '' }
 

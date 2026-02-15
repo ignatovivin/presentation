@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { usePresentationStore } from '@/store/presentation-store'
+import { getTemplateStyle } from '@/lib/templates'
 import { SlideList } from '@/components/editor/slide-list'
 import { SlideEditor } from '@/components/editor/slide-editor'
 import { Button } from '@/components/ui/button'
@@ -14,6 +15,7 @@ import {
 } from 'lucide-react'
 
 const TEMPLATE_NAMES: Record<string, string> = {
+  'fintech-corporate': 'Финтех Корпоратив',
   minimal: 'Минимализм',
   dark: 'Тёмная тема',
   colorful: 'Яркий',
@@ -409,14 +411,58 @@ export default function EditorPage() {
               id={`slide-${currentSlide.id}`}
               className="absolute inset-0 grid place-items-center p-6 overflow-visible"
             >
-              {/* Окно слайда: по умолчанию как в PowerPoint — 16:9, макс 1280×720 */}
-              <div className="w-full max-w-[1280px] max-h-full aspect-video bg-white overflow-visible rounded-[32px] shrink-0">
-                <SlideEditor
-                  slide={currentSlide}
-                  onUpdate={handleSlideUpdate}
-                  onDelete={handleSlideDelete}
-                />
-              </div>
+              {/* Окно слайда: стиль шаблона применяется к канвасу (финтех и др.) */}
+              {(() => {
+                const templateId = currentPresentation?.templateId
+                const isFintech = templateId === 'fintech-corporate'
+                const templateStyle = getTemplateStyle(templateId)
+                const canvasClass = 'w-full max-w-[1280px] max-h-full aspect-video overflow-visible rounded-[32px] shrink-0 ' + (isFintech ? 'editor-slide-canvas editor-slide-canvas-fintech' : 'bg-white')
+                return (
+                  <>
+                    {isFintech && templateStyle && (
+                      <style dangerouslySetInnerHTML={{ __html: `
+                        .editor-slide-canvas-fintech {
+                          background: var(--editor-slide-bg, #FFFFFF) !important;
+                          color: var(--editor-slide-text, #081C4F) !important;
+                          font-family: Arial, Helvetica, sans-serif !important;
+                          padding: var(--editor-padding-medium, 80px) var(--editor-padding-large, 100px) !important;
+                          text-align: left !important;
+                        }
+                        .editor-slide-canvas-fintech [data-slide-title],
+                        .editor-slide-canvas-fintech [data-slide-title] input {
+                          font-size: var(--editor-heading-size, 48px) !important;
+                          font-weight: 700 !important;
+                          color: var(--editor-slide-text, #081C4F) !important;
+                        }
+                        .editor-slide-canvas-fintech .ProseMirror,
+                        .editor-slide-canvas-fintech .ProseMirror * {
+                          font-size: var(--editor-body-size, 18px) !important;
+                          color: var(--editor-slide-text, #081C4F) !important;
+                          line-height: 1.5 !important;
+                        }
+                      ` }} />
+                    )}
+                    <div
+                      className={canvasClass}
+                      data-template={templateId || undefined}
+                      style={isFintech && templateStyle ? {
+                        ['--editor-slide-bg' as string]: templateStyle.cssVars['--slide-bg'],
+                        ['--editor-slide-text' as string]: templateStyle.cssVars['--slide-text'],
+                        ['--editor-heading-size' as string]: templateStyle.cssVars['--heading-size'],
+                        ['--editor-body-size' as string]: templateStyle.cssVars['--body-size'],
+                        ['--editor-padding-medium' as string]: templateStyle.cssVars['--padding-medium'],
+                        ['--editor-padding-large' as string]: templateStyle.cssVars['--padding-large'],
+                      } : undefined}
+                    >
+                      <SlideEditor
+                        slide={currentSlide}
+                        onUpdate={handleSlideUpdate}
+                        onDelete={handleSlideDelete}
+                      />
+                    </div>
+                  </>
+                )
+              })()}
             </div>
           ) : (
             <div className="flex items-center justify-center h-full text-gray-400">
