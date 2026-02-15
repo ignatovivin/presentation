@@ -39,7 +39,7 @@ export function AlignmentToolbar({
         type="button"
         onClick={() => onContentAlign('left')}
         className={cn(
-          'rounded-lg p-2 transition-colors hover:bg-black/10',
+          'rounded-lg p-1.5 transition-colors hover:bg-black/10',
           contentAlign === 'left' && 'bg-black/10'
         )}
         title="По левому краю"
@@ -51,7 +51,7 @@ export function AlignmentToolbar({
         type="button"
         onClick={() => onContentAlign('center')}
         className={cn(
-          'rounded-lg p-2 transition-colors hover:bg-black/10',
+          'rounded-lg p-1.5 transition-colors hover:bg-black/10',
           contentAlign === 'center' && 'bg-black/10'
         )}
         title="По центру"
@@ -63,7 +63,7 @@ export function AlignmentToolbar({
         type="button"
         onClick={() => onContentAlign('right')}
         className={cn(
-          'rounded-lg p-2 transition-colors hover:bg-black/10',
+          'rounded-lg p-1.5 transition-colors hover:bg-black/10',
           contentAlign === 'right' && 'bg-black/10'
         )}
         title="По правому краю"
@@ -79,7 +79,7 @@ export function AlignmentToolbar({
         type="button"
         onClick={() => onVerticalAlign('top')}
         className={cn(
-          'rounded-lg p-2 transition-colors hover:bg-black/10',
+          'rounded-lg p-1.5 transition-colors hover:bg-black/10',
           verticalAlign === 'top' && 'bg-black/10'
         )}
         title="По верху"
@@ -91,7 +91,7 @@ export function AlignmentToolbar({
         type="button"
         onClick={() => onVerticalAlign('middle')}
         className={cn(
-          'rounded-lg p-2 transition-colors hover:bg-black/10',
+          'rounded-lg p-1.5 transition-colors hover:bg-black/10',
           verticalAlign === 'middle' && 'bg-black/10'
         )}
         title="По вертикали по центру"
@@ -103,7 +103,7 @@ export function AlignmentToolbar({
         type="button"
         onClick={() => onVerticalAlign('bottom')}
         className={cn(
-          'rounded-lg p-2 transition-colors hover:bg-black/10',
+          'rounded-lg p-1.5 transition-colors hover:bg-black/10',
           verticalAlign === 'bottom' && 'bg-black/10'
         )}
         title="По низу"
@@ -117,7 +117,7 @@ export function AlignmentToolbar({
       {/* Ссылка (заглушка) и удаление */}
       <button
         type="button"
-        className="rounded-lg p-2 transition-colors hover:bg-black/10"
+        className="rounded-lg p-1.5 transition-colors hover:bg-black/10"
         title="Вставить ссылку"
       >
         <Link2 className="h-4 w-4 text-gray-700" />
@@ -126,7 +126,7 @@ export function AlignmentToolbar({
         <button
           type="button"
           onClick={onDelete}
-          className="rounded-lg p-2 transition-colors hover:bg-red-100 hover:text-red-600"
+          className="rounded-lg p-1.5 transition-colors hover:bg-red-100 hover:text-red-600"
           title="Удалить слайд"
         >
           <Trash2 className="h-4 w-4" />

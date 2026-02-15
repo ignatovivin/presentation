@@ -106,9 +106,9 @@ export function SlideEditor({ slide, onUpdate, onDelete }: SlideEditorProps) {
             <div
               data-unified-menu
               onClick={(e) => e.stopPropagation()}
-              className="pointer-events-auto inline-flex items-center gap-0.5 bg-white rounded-2xl px-3 py-1.5"
+              className="pointer-events-auto inline-flex items-center gap-0.5 bg-white rounded-xl px-2 py-1"
               style={{
-                boxShadow: 'rgba(0, 0, 0, 0.06) 0px 20px 32px',
+                boxShadow: 'rgba(0, 0, 0, 0.06) 0px 10px 24px',
                 border: '1px solid rgba(0, 0, 0, 0.08)',
               }}
             >

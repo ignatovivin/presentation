@@ -416,7 +416,7 @@ export default function OutlinePage() {
               className="rounded-xl bg-gray-200 hover:bg-gray-300 text-gray-900"
             >
               {loadingOutline ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              {loadingOutline ? ' Генерация...' : 'Сгенерировать структуру'}
+              {loadingOutline ? ' Генерация...' : 'Перегенерировать структуру'}
             </Button>
           </div>
         </section>

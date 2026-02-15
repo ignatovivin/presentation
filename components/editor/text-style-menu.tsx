@@ -105,13 +105,13 @@ export function TextStyleMenu({
       <div className="mx-0.5 h-5 w-px bg-gray-300" aria-hidden />
 
       {/* Выравнивание текста */}
-      <button type="button" onClick={() => onAlign('left')} className={cn('rounded-lg p-2 transition-colors hover:bg-black/10', align === 'left' && 'bg-black/10')} title="По левому краю">
+      <button type="button" onClick={() => onAlign('left')} className={cn('rounded-lg p-1.5 transition-colors hover:bg-black/10', align === 'left' && 'bg-black/10')} title="По левому краю">
         <AlignLeft className="h-4 w-4 text-gray-700" />
       </button>
-      <button type="button" onClick={() => onAlign('center')} className={cn('rounded-lg p-2 transition-colors hover:bg-black/10', align === 'center' && 'bg-black/10')} title="По центру">
+      <button type="button" onClick={() => onAlign('center')} className={cn('rounded-lg p-1.5 transition-colors hover:bg-black/10', align === 'center' && 'bg-black/10')} title="По центру">
         <AlignCenter className="h-4 w-4 text-gray-700" />
       </button>
-      <button type="button" onClick={() => onAlign('right')} className={cn('rounded-lg p-2 transition-colors hover:bg-black/10', align === 'right' && 'bg-black/10')} title="По правому краю">
+      <button type="button" onClick={() => onAlign('right')} className={cn('rounded-lg p-1.5 transition-colors hover:bg-black/10', align === 'right' && 'bg-black/10')} title="По правому краю">
         <AlignRight className="h-4 w-4 text-gray-700" />
       </button>
 

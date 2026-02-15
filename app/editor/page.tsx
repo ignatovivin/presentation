@@ -384,11 +384,11 @@ export default function EditorPage() {
         </div>
       </header>
 
-      {/* Глобальный сброс размера меню — всегда компактный, независимо от шаблона */}
+      {/* Глобальный сброс размера меню — компактные паддинги */}
       <style dangerouslySetInnerHTML={{ __html: `
         [data-unified-menu] {
           font-size: 14px !important;
-          padding: 6px 12px !important;
+          padding: 4px 8px !important;
           min-height: unset !important;
           box-sizing: border-box !important;
         }
@@ -397,7 +397,7 @@ export default function EditorPage() {
           box-sizing: border-box !important;
         }
         [data-unified-menu] button {
-          padding: 8px !important;
+          padding: 6px !important;
           min-width: unset !important;
           min-height: unset !important;
         }
@@ -409,7 +409,7 @@ export default function EditorPage() {
           min-height: 16px !important;
         }
       ` }} />
-      {/* Main Editor — грид: колонка слайдов + центральная область */}
+      {/* Main Editor — слева превью + кнопка «Добавить слайд», по центру слайд (как в Figma) */}
       <div className="flex-1 grid grid-cols-[110px_1fr] min-h-0 overflow-visible">
         <SlideList
           slides={currentPresentation.slides}
@@ -422,8 +422,8 @@ export default function EditorPage() {
           onChangeSlideType={handleChangeSlideType}
         />
 
-        {/* Центральная область — грид для центрирования окна слайда */}
-        <div className="relative overflow-visible bg-white grid place-items-center p-4 min-h-0">
+        {/* Центральная область — слайд по центру (как в Figma) */}
+        <div className="relative overflow-visible bg-[#f5f5f5] grid place-items-center p-4 min-h-0">
           {currentSlide ? (
             <div
               id={`slide-${currentSlide.id}`}
@@ -477,7 +477,7 @@ export default function EditorPage() {
                           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
                           line-height: normal !important;
                           font-weight: normal !important;
-                          padding: 6px 12px !important;
+                          padding: 4px 8px !important;
                           min-height: unset !important;
                           box-sizing: border-box !important;
                         }
@@ -491,7 +491,7 @@ export default function EditorPage() {
                         }
                         [data-editor-presentation-block].editor-slide-canvas-fintech [data-unified-menu] button {
                           font-size: 14px !important;
-                          padding: 8px !important;
+                          padding: 6px !important;
                           min-width: unset !important;
                           min-height: unset !important;
                         }
